@@ -1,0 +1,26 @@
+# [Experiment Configuration]
+
+# 1. Graph Construction
+# Options: 'simple' (FK Based), 'semantic' (LLM enhanced)
+graph_type: "simple"
+
+# 2. Initial Node Selection
+# Options: 'fixed' (Top-k), 'adaptive' (Threshold based)
+selector_type: "adaptive"
+top_k: 3        # Used if selector_type is 'fixed'
+alpha: 0.8      # Used if selector_type is 'adaptive' (ratio to top score)
+min_k: 2        # Minimum seeds for adaptive
+max_k: 5        # Maximum seeds for adaptive
+
+# 3. Subgraph Retrieval
+# Options: 'shortest_path', 'pcst', 'ppr'
+retriever_type: 'shortest_path'
+max_hops: 3     # For shortest_path
+
+# 4. Agent & LLM
+agent_model_id: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+embedder_model_id: "sentence-transformers/all-MiniLM-L6-v2"
+
+# 5. Paths
+data_path: "/home/kibo/peoples/hyeonjin/thesis/main_experiment/data/BIRD/dev.json"
+table_path: "/home/kibo/peoples/hyeonjin/thesis/main_experiment/data/BIRD/dev_tables.json"
