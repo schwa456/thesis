@@ -42,6 +42,7 @@ class XiYanGenerator(BaseGenerator):
         
         try:
             prompt = self.prompt_template.format(
+                dialect='sqlite',
                 schema_info=schema_info,
                 question=question,
                 evidence=evidence
@@ -54,7 +55,8 @@ class XiYanGenerator(BaseGenerator):
             payload = {
                 "prompt": prompt,
                 "max_tokens": 2048,
-                "temperature": 0.1
+                "temperature": 0.1,
+                "echo": False
             }
 
             logger.debug("Sending SQL Generation Request...")
@@ -79,14 +81,39 @@ class XiYanGenerator(BaseGenerator):
     def _process_response(self, response_text: str) -> str:
         query = self._extract_sql_query(response_text)
 
-        while query.endswith("`"):
-            query = query.replace("`", "")
+        #query = query.replace("`", "")
         
-        return query.strip()
+        query = query.strip().rstrip(';')
+        
+        return query
 
-    def _extract_sql_query(self, response: str) -> str:
-        match = re.search(r"SELECT[\s\S]+?[;|``````]", response, re.IGNORECASE)
-        return match.group(0).strip() if match else response.strip()
+    def _extract_sql_query(self, text: str) -> str:
+        if not text:
+            return ""
+        
+        # 1. 마크다운 블록 추출
+        code_block_pattern = r"```(?:sql)?\s*(.*?)```"
+        match = re.search(code_block_pattern, text, re.DOTALL | re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        
+        # 2. SELECT 문 추출 (SELECT ... ;)
+        select_pattern = r"(SELECT\s[\s\S]+?;)"
+        match = re.search(select_pattern, text, re.DOTALL | re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        
+        # 3. SELECT 문 추출 (SELECT ...)
+        select_start_pattern = r"(SELECT\s[\s\S]*)"
+        match = re.search(select_start_pattern, text, re.DOTALL | re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        
+        # 헤더 삭제
+        lines = [line for line in text.split('\n') if not line.strip().startswith('#')]
+        clean_text = "\n".join(lines).strip()
+
+        return clean_text
 
 
 class GPTGenerator(BaseGenerator):
