@@ -23,16 +23,32 @@ class SimpleFKGraphBuilder(BaseGraphBuilder):
     [Edge]: Table-Column(contains), Column-Column(FK)
     PK/FK 구조와 comment를 포함하는 상세 그래프 빌더
     """
-    def __init__(self):
-        self.manual_pks = {
+    def __init__(self, mode):
+        self.mode = mode
+        self.manual_pks = {}
+        self.manual_fks = []
 
-        }
+        if mode == 'lg55':
+            self.manual_pks = {
+                "cmp": "CMP_SEQ",
+                "metric": "METRIC_SEQ",
+                "metric_cmp": "METRIC_CMP_SEQ",
+                "cmp_adm_lvl": "CMP_LVL_SEQ",
+                "metric_data": "METRIC_DATA_SEQ",
+                "metric_cmp_adm_lvl": "LVL_SEQ"
+            }
 
-        self.manual_fks = [
+            self.manual_fks = [
+                ("cmp", "CMP_SEQ", "metric_cmp", "CMP_SEQ"),
+                ("cmp", "CMP_SEQ", "cmp_adm_lvl", "CMP_SEQ"),
+                ("metric", "METRIC_SEQ", "metric_cmp", "METRIC_SEQ"),
+                ("metric", "METRIC_SEQ", "metric_cmp_adm_lvl", "METRIC_SEQ"),
+                ("cmp_adm_lvl", "CMP_LVL_SEQ", "metric_cmp_adm_lvl", "CMP_LVL_SEQ"),
+                ("metric_cmp_adm_lvl", "LVL_SEQ", "metric_data", "LVL_SEQ"),
+            ]
 
-        ]
-    def build_graph(self, db_engine):
-        logger.info("Building Knowledge Graph...")
+    def build_graph(self, db_engine, db_id=None, bird_meta=None):
+        logger.info(f"Building Knowledge Graph for {db_id}...")
 
         G = nx.Graph()
         inspector = inspect(db_engine)
@@ -95,6 +111,10 @@ class SimpleFKGraphBuilder(BaseGraphBuilder):
         
         # 2. Edge 생성 (FK)
         self._build_relationships(G, tables, inspector)
+
+        # 3. BIRD Metadata 활용
+        if self.mode == 'bird' and bird_meta:
+            self._apply_bird_metadata(G, bird_meta)
         
         
         logger.debug(f"Graph Built: {len(G.nodes)} nodes, {len(G.edges)} edges")
@@ -145,6 +165,114 @@ class SimpleFKGraphBuilder(BaseGraphBuilder):
 
             self._add_edge_debug(G, src_tbl, src_col, tgt_tbl, tgt_col)
     
+    def _apply_bird_metadata(self, G, bird_meta):
+        """
+        BIRD dev_tables.json 정보를 그래프에 적용 (안전한 버전)
+        """
+        logger.info("Applying BIRD Metadata...")
+        
+        tbl_names_list = bird_meta.get('table_names', [])
+        col_names_list = bird_meta.get('column_names', []) 
+        orig_names_list = bird_meta.get('column_names_original', [])
+        bird_fks = bird_meta.get('foreign_keys', [])
+        bird_pks = bird_meta.get('primary_keys', [])
+
+        # [Safety Check] 테이블 이름 매핑 (Metadata Name -> Graph Node Name)
+        # 메타데이터의 이름이 실제 DB와 다를 경우(공백, 대소문자 등)를 대비해 매핑 테이블 생성
+        meta_to_graph_table = {}
+        
+        # 그래프에 있는 실제 테이블 노드 목록
+        graph_tables = {n: n for n in G.nodes if G.nodes[n].get('type') == 'table'}
+        # 대소문자 무시 매핑용
+        graph_tables_lower = {n.lower(): n for n in graph_tables}
+
+        for meta_name in tbl_names_list:
+            # 1. 정확히 일치하는 경우
+            if meta_name in graph_tables:
+                meta_to_graph_table[meta_name] = meta_name
+            # 2. 대소문자만 다른 경우
+            elif meta_name.lower() in graph_tables_lower:
+                meta_to_graph_table[meta_name] = graph_tables_lower[meta_name.lower()]
+            # 3. 매칭 실패 (frpm vs free meals 처럼 아예 다른 경우) -> 스킵해야 함
+            else:
+                pass 
+                # logger.warning(f"Mismatch: Meta table '{meta_name}' not found in Graph tables.")
+
+        # -------------------------------------------------------
+        # 1. Description (Original Name) 업데이트 & PK 보정
+        # -------------------------------------------------------
+        for col_idx, (tbl_idx, col_name) in enumerate(col_names_list):
+            if tbl_idx == -1: continue
+            
+            try:
+                meta_tbl_name = tbl_names_list[tbl_idx]
+                
+                # [Fix] 실제 그래프에 있는 테이블 이름으로 변환
+                real_tbl_name = meta_to_graph_table.get(meta_tbl_name)
+                
+                # 테이블을 못 찾았으면 컬럼 처리도 불가능하므로 스킵
+                if not real_tbl_name:
+                    continue
+
+                # 노드 ID 구성 (GraphBuilder가 만든 방식대로: table.column)
+                # 주의: col_name도 메타데이터와 실제 DB가 다를 수 있음 (대소문자 등)
+                target_node_id = f"{real_tbl_name}.{col_name}"
+                
+                # 그래프에서 해당 노드 찾기 (없으면 이웃 노드 뒤져서 찾기)
+                final_node_id = None
+                if G.has_node(target_node_id):
+                    final_node_id = target_node_id
+                else:
+                    # 대소문자/공백 차이로 못 찾을 경우, 해당 테이블의 컬럼들을 뒤져서 매칭
+                    col_lower = col_name.lower().replace(" ", "")
+                    for n in G.neighbors(real_tbl_name):
+                        # n은 'table.column' 형태
+                        n_col_part = n.split('.', 1)[1]
+                        if n_col_part.lower().replace(" ", "") == col_lower:
+                            final_node_id = n
+                            break
+                
+                if not final_node_id:
+                    continue
+
+                # (1) Description 업데이트
+                orig_name = orig_names_list[col_idx][1]
+                if orig_name:
+                    # 기존 description에 덧붙이거나 덮어쓰기
+                    curr_desc = G.nodes[final_node_id].get('description')
+                    if curr_desc:
+                        G.nodes[final_node_id]['description'] = f"{curr_desc}, {orig_name}"
+                    else:
+                        G.nodes[final_node_id]['description'] = orig_name
+
+                # (2) PK 보정
+                if col_idx in bird_pks:
+                    G.nodes[final_node_id]['is_pk'] = True
+
+            except (IndexError, KeyError):
+                continue
+
+        # -------------------------------------------------------
+        # 2. Foreign Keys 연결
+        # -------------------------------------------------------
+        for src_idx, tgt_idx in bird_fks:
+            try:
+                # Source
+                src_tbl_idx, src_col_name = col_names_list[src_idx]
+                src_meta_tbl = tbl_names_list[src_tbl_idx]
+                src_real_tbl = meta_to_graph_table.get(src_meta_tbl)
+
+                # Target
+                tgt_tbl_idx, tgt_col_name = col_names_list[tgt_idx]
+                tgt_meta_tbl = tbl_names_list[tgt_tbl_idx]
+                tgt_real_tbl = meta_to_graph_table.get(tgt_meta_tbl)
+
+                if src_real_tbl and tgt_real_tbl:
+                    self._add_edge_debug(G, src_real_tbl, src_col_name, tgt_real_tbl, tgt_col_name)
+                
+            except IndexError:
+                continue
+    
     def _add_edge(self, G, t1, c1, t2, c2, is_virtual=False):
         u, v = f"{t1}.{c1}", f"{t2}.{c2}"
         if G.has_node(u) and G.has_node(v):
@@ -175,9 +303,22 @@ class SimpleFKGraphBuilder(BaseGraphBuilder):
                     real_cols = [n for n in G.neighbors(t2)]
                     logger.warning(f"   -> Available nodes in {t2}: {real_cols}")
 
+    def _find_real_node_id(self, G, table_name, target_node_id):
+        """ 그래프에 존재하는 실제 노드 ID를 대소문자 무시하고 찾음 """
+        if G.has_node(target_node_id):
+            return target_node_id
+        
+        # 없으면 대소문자 무시 검색
+        target_lower = target_node_id.lower()
+        if G.has_node(table_name): # 테이블 노드가 있다면 그 이웃(컬럼)을 검색
+            for n in G.neighbors(table_name):
+                if n.lower() == target_lower:
+                    return n
+        return None
+
 class ShortcutGraphBuilder(SimpleFKGraphBuilder):
-    def build_graph(self, db_engine):
-        G, tables = super().build_graph(db_engine)
+    def build_graph(self, db_engine, db_id=None, bird_meta=None):
+        G, tables = super().build_graph(db_engine, db_id=db_id, bird_meta=bird_meta)
 
         table_shortcuts = set()
 
@@ -213,7 +354,7 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
         Args:
             cache_path: 생성된 그래프를 저장/로드할 경로
         """
-        super().__init__()
+        super().__init__(mode=config['data']['mode'])
         self.cache_path = cache_path
         self.config = config
 
@@ -230,7 +371,7 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
 
         return None
 
-    def build_graph(self, db_engine):
+    def build_graph(self, db_engine, db_id, bird_meta):
         if os.path.exists(self.cache_path):
             logger.debug(f"Loading Cached Semantic Graph from {self.cache_path}...")
             with open(self.cache_path, 'rb') as f:
@@ -238,7 +379,7 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
                 self.G = saved_data['G']
                 return self.G, saved_data['tables']
 
-        G, tables = super().build_graph(db_engine)
+        G, tables = super().build_graph(db_engine, db_id=db_id, bird_meta=bird_meta)
 
 
         logger.info("Generating Semantic Description for Edges (This may take a while)...")
