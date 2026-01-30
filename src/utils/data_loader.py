@@ -19,25 +19,40 @@ class DataLoader:
         else:
             raise ValueError(f"Unknown data mode: {self.mode}")
     
-    def _load_bird(self):
-        json_path = self.config['data']['bird']['dev_json_path']
-        logger.info(f"Loading BIRD Dev Set from {json_path}")
+    def _load_bird_tables(self):
+        """dev_tables.json을 읽어 DB ID별 메타데이터 매핑"""
+        table_path = self.config['data']['bird']['dev_table_path'] # dev.json 경로
+        
+        if not os.path.exists(table_path):
+            return {}
 
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        with open(table_path, 'r', encoding='utf-8') as f:
+            tables_list = json.load(f)
+        
+        return {t['db_id']: t for t in tables_list}
+
+    def _load_bird(self):
+        if self.mode != 'bird':
+            return []
+
+        data_path = self.config['data']['bird']['dev_json_path']
+        with open(data_path, 'r', encoding='utf-8') as f:
+            raw_data = json.load(f)
+            
+        tables_metadata = self._load_bird_tables()
         
         processed_data = []
-        for item in data:
+        for item in raw_data:
+            db_id = item['db_id']
             processed_data.append({
-                "question_id": item.get("question_id"),
-                "question": item["question"],
-                "gt_schema": self._convert_sql_to_schema(item.get("SQL", "")),
-                "db_id": item["db_id"],
-                "evidence": item.get("evidence", ""),
-                "sql": item.get("SQL", "")
+                "db_id": db_id,
+                "question": item['question'],
+                "evidence": item.get('evidence', ''),
+                "sql": item['SQL'],
+                "gt_schema": self._convert_sql_to_schema(item['SQL']),
+                "meta_schema": tables_metadata.get(db_id, {}) 
             })
-
-        logger.info(f"Loaded {len(processed_data)} questions from BIRD")
+        
         return processed_data
     
     def _load_lg55(self):
