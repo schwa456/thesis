@@ -58,7 +58,7 @@ class FilteringAgent(BaseAgent):
             logger.error(f"[ERROR] Failed to load prompt: {e}")
             raise e
     
-    def filter_schema(self, question, retrieved_graph):
+    def filter_schema(self, question, retrieved_graph, evidence=None):
         schema_lines = []
 
         table_nodes = [n for n, attr in retrieved_graph.nodes(data=True) if attr.get('type') == 'table']
@@ -94,7 +94,8 @@ class FilteringAgent(BaseAgent):
         try:
             user_prompt = self._load_user_prompt(self.user_prompt_path).format(
                 question=question,
-                candidates_str=candidates_str
+                candidates_str=candidates_str,
+                evidence=evidence
             )
         except KeyError as e:
             logger.error(f"[ERROR] Prompt Formatting Error: Missing Key: {e}")
