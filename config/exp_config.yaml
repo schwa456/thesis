@@ -2,11 +2,6 @@
 
 # 0. Data
 data:
-  mode: "bird"
-  lg55:
-    question_path: "data/lg55_manual_gt.json"
-    db_uri: "mysql+pymysql://root:visionai@mariadb:3306/lg_multiple_tables_w_keys"
-
   bird:
     dev_json_path: "data/BIRD_dev/dev.json"
     dev_table_path: "data/BIRD_dev/dev_tables.json"
