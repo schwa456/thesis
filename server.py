@@ -19,6 +19,7 @@ role_name = ""
 
 # === 1. Configuration Loading ===
 def load_config(path):
+    logger.info(f"[SERVER] Loading configuration from {path}...")
     with open(path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
@@ -96,6 +97,7 @@ if __name__ == "__main__":
             gpu_memory_utilization=args.gpu_util,
             quantization="bitsandbytes",
             load_format="bitsandbytes",
+            dtype="auto",
             disable_log_stats=False
         )
 
