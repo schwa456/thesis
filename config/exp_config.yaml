@@ -1,8 +1,16 @@
 # [Experiment Configuration]
 
+# 0. Data
+data:
+  mode: "bird"
+  bird:
+    dev_json_path: "data/BIRD_dev/dev.json"
+    table_path: "data/BIRD_dev/dev_table.json"
+    db_root_path: "data/BIRD_dev/dev_databases/dev_databases"
+
 # 1. Graph Construction
-# Options: 'simple' (FK Based), 'semantic' (LLM enhanced)
-graph_type: "simple"
+# Options: 'simple' (FK Based), 'semantic' (LLM enhanced), 'shortcut' (Table - Table shortcut node)
+graph_type: "semantic"
 
 # 2. Initial Node Selection
 # Options: 'fixed' (Top-k), 'adaptive' (Threshold based)
@@ -12,15 +20,23 @@ alpha: 0.8      # Used if selector_type is 'adaptive' (ratio to top score)
 min_k: 2        # Minimum seeds for adaptive
 max_k: 5        # Maximum seeds for adaptive
 
-# 3. Subgraph Retrieval
-# Options: 'shortest_path', 'pcst', 'ppr'
-retriever_type: 'shortest_path'
-max_hops: 3     # For shortest_path
+# 3. Traversal
+# Options: 'shortest_path', 'neighbor'
+traverser_type: 'shortest_path'
+max_hops: 5     # For shortest_path
+hops: 1         # For neighbor
 
-# 4. Agent & LLM
+# 4. Retriever
+# Options: 'graph_schema', 'pcst'
+retriever_type: 'pcst'
+
+# 5. Agent & LLM
+agent_url: "http://localhost:8000"
+generator_url: "http://localhost:8001"
 agent_model_id: "meta-llama/Meta-Llama-3.1-8B-Instruct"
 embedder_model_id: "sentence-transformers/all-MiniLM-L6-v2"
+generator_model_id: "XGenerationLab/XiYanSQL-QwenCoder-8B-2504"
 
-# 5. Paths
+# 6. Paths
 data_path: "/home/kibo/peoples/hyeonjin/thesis/main_experiment/data/BIRD/dev.json"
 table_path: "/home/kibo/peoples/hyeonjin/thesis/main_experiment/data/BIRD/dev_tables.json"
