@@ -2,19 +2,34 @@ import pandas as pd
 import logging
 import time
 import math
+import ast
 from typing import List, Any, Dict, Set
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
+
+def safe_list_converter(data):
+    if isinstance(data, list):
+        return data
+    if isinstance(data, str):
+        try:
+            return ast.literal_eval(data.strip())
+        except (ValueError, SyntaxError):
+            if ',' in data:
+                return [x.strip() for x in data.split(',')]
+            return []
+    return []
 
 class SchemaEvaluator:
     def __init__(self, db_path: str = None):
         self.db_path = db_path
 
     def _normalize_set(self, item_list):
-        if not item_list:
+        clean_list = safe_list_converter(item_list)
+
+        if not clean_list:
             return set()
-        return set(item.lower().strip() for item in item_list)
+        return set(item.lower().strip() for item in clean_list)
 
     def _normalize_sql(self, sql: str) -> str:
         if not sql: return ""
@@ -31,6 +46,9 @@ class SchemaEvaluator:
         start_time = time.time()
         result_set = set()
         error = None
+
+        if not engine:
+            return set(), 0.0, "No Engine Provided"
 
         try:
             with engine.connect() as conn:
