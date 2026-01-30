@@ -3,9 +3,13 @@
 # 0. Data
 data:
   mode: "bird"
+  lg55:
+    question_path: "data/lg55_manual_gt.json"
+    db_uri: "mysql+pymysql://root:visionai@mariadb:3306/lg_multiple_tables_w_keys"
+
   bird:
     dev_json_path: "data/BIRD_dev/dev.json"
-    table_path: "data/BIRD_dev/dev_table.json"
+    dev_table_path: "data/BIRD_dev/dev_tables.json"
     db_root_path: "data/BIRD_dev/dev_databases/dev_databases"
 
 # 1. Graph Construction
@@ -30,13 +34,20 @@ hops: 1         # For neighbor
 # Options: 'graph_schema', 'pcst'
 retriever_type: 'pcst'
 
-# 5. Agent & LLM
-agent_url: "http://localhost:8000"
-generator_url: "http://localhost:8001"
-agent_model_id: "meta-llama/Meta-Llama-3.1-8B-Instruct"
-embedder_model_id: "sentence-transformers/all-MiniLM-L6-v2"
-generator_model_id: "XGenerationLab/XiYanSQL-QwenCoder-8B-2504"
+# 4. Agent & LLM
+embedder: 
+  model_id: "sentence-transformers/all-MiniLM-L6-v2"
 
-# 6. Paths
-data_path: "/home/kibo/peoples/hyeonjin/thesis/main_experiment/data/BIRD/dev.json"
-table_path: "/home/kibo/peoples/hyeonjin/thesis/main_experiment/data/BIRD/dev_tables.json"
+agent:
+  url: "http://localhost:8000"
+  model_id: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+  system_prompt_path: "./prompts/{mode}/agent/system.md"
+  user_prompt_path: "./prompts/{mode}/agent/user.md"
+
+generator:
+  url: "http://localhost:8001"
+  model_id: "XGenerationLab/XiYanSQL-QwenCoder-32B-2504"
+  prompt_path: "./prompts/{mode}/sql_generation.md"
+
+# 5. Evaluation Log Enable
+evaluation_log: True
