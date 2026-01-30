@@ -89,7 +89,14 @@ def main():
     logger.info(f"[INFO] Loaded {len(dataset)} items from [{config['data']['mode']}] dataset.")
 
     # 4. SQL Generator 초기화
-    generator = XiYanGenerator(config.get('server_url', 'http://localhost:8001'))
+    gen_config = config.get('generator', {})
+    server_url = gen_config.get('url')
+    prompt_path = gen_config.get('prompt_path').format(mode=config['data']['mode'])
+
+    generator = XiYanGenerator(
+        server_url=server_url,
+        prompt_path=prompt_path
+    )
     #generator = GPTGenerator(config.get('gpt-config', ''))
 
     # 5. Evaluation
@@ -111,6 +118,7 @@ def main():
         evidence = item.get('evidence', '')
         gt_schema = item['gt_schema']
         gold_sql = item.get("sql", "")
+        bird_meta = item.get('meta_schema', '')
         logger.debug(f"Question: {question}")
 
         pbar.set_description(f"[{db_id}] QID: {idx}")
@@ -137,9 +145,11 @@ def main():
         try:
             # 파이프라인 실행
             result = pipeline.run(
-                question=question,
+                question=question,  
                 db_id=db_id,
                 db_engine=db_engine,
+                evidence=evidence,
+                bird_meta=bird_meta,
                 status_callback=None
             )
 
