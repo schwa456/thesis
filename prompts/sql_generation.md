@@ -15,9 +15,10 @@ Note: The database can be complicated, so that you MUST follow the 【Rules】 f
 
 
 ### 【Output Format】
-- Return **ONLY** the raw SQL code.
-- Do not include markdown formatting (like ```sql).
-- Do not add explanations.
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
 
 ### 【User Question】
 {question}
+
+```sql
