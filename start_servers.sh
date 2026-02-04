@@ -5,7 +5,15 @@ clean_up() {
     echo ""
     echo "Stopping all servers..."
 
-    kill $(jobs -p)>/dev/null
+    if [ -n "$AGENT_PID" ]; then
+        pkill -P $AGENT_PID
+        kill $AGENT_PID
+    fi
+
+    if [ -n "$GEN_PID" ]; then
+        pkill -P $GEN_PID
+        kill $GEN_PID
+    fi
 
     exit 1
 }
