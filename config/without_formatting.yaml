@@ -1,0 +1,51 @@
+# [Experiment Configuration]
+
+# 0. Data
+data:
+  mode: "bird"
+  bird:
+    dev_json_path: "data/BIRD_dev/dev.json"
+    dev_table_path: "data/BIRD_dev/dev_tables.json"
+    db_root_path: "data/BIRD_dev/dev_databases/dev_databases"
+
+# 1. Graph Construction
+# Options: 'simple' (FK Based), 'semantic' (LLM enhanced), 'shortcut' (Table - Table shortcut node)
+graph_type: "semantic"
+
+# 2. Initial Node Selection
+# Options: 'fixed' (Top-k), 'adaptive' (Threshold based)
+selector_type: "adaptive"
+top_k: 3        # Used if selector_type is 'fixed'
+alpha: 0.8      # Used if selector_type is 'adaptive' (ratio to top score)
+min_k: 2        # Minimum seeds for adaptive
+max_k: 5        # Maximum seeds for adaptive
+
+# 3. Traversal
+# Options: 'shortest_path', 'neighbor'
+traverser_type: 'shortest_path'
+max_hops: 5     # For shortest_path
+hops: 1         # For neighbor
+
+# 4. Retriever
+# Options: 'graph_schema', 'pcst'
+retriever_type: 'none'
+
+# 4. Agent & LLM
+embedder: 
+  model_id: "sentence-transformers/all-MiniLM-L6-v2"
+
+agent:
+  usage: True
+  formatting: False
+  url: "http://localhost:8000"
+  model_id: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+  system_prompt_path: "./prompts/{mode}/agent/system.md"
+  user_prompt_path: "./prompts/{mode}/agent/user.md"
+
+generator:
+  url: "http://localhost:8001"
+  model_id: "XGenerationLab/XiYanSQL-QwenCoder-32B-2504"
+  prompt_path: "./prompts/{mode}/sql_generation.md"
+
+# 5. Evaluation Log Enable
+evaluation_log: True
