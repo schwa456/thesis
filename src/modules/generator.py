@@ -39,6 +39,8 @@ class XiYanGenerator(BaseGenerator):
             raise e
 
     def generate_query(self, question, schema_info, evidence=None):
+
+        logger.debug(f"Evidence: \n{evidence}")
         
         try:
             prompt = self.prompt_template.format(
@@ -50,6 +52,8 @@ class XiYanGenerator(BaseGenerator):
         except KeyError as e:
             logger.error(f"[ERROR] Prompt Formatting Error: Missing Key: {e}")
             return ""
+
+        logger.debug(f"Prompt: \n{prompt}")
 
         try:
             payload = {
@@ -117,9 +121,9 @@ class XiYanGenerator(BaseGenerator):
 
 
 class GPTGenerator(BaseGenerator):
-    def __init__(self, model_config):
+    def __init__(self, model_config, prompt_path):
         self.model_config = model_config
-
+        self.prompt_template = self._load_prompt(prompt_path)
         self.client = AzureOpenAI(
             azure_endpoint=self.model_config['end_point'],
             api_key=self.model_config['api_key'],
@@ -149,6 +153,7 @@ class GPTGenerator(BaseGenerator):
 
         try:
             system_prompt = self.prompt_template.format(
+                dialect="SQLite",
                 schema_info=schema_info,
                 question=question,
                 evidence=evidence
