@@ -13,6 +13,8 @@ Note: The database can be complicated, so that you MUST follow the 【Rules】 f
 ### 【Reference Information】
 {evidence}
 
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
 
 ### 【Output Format】
 - Return the SQL query inside a markdown code block.
