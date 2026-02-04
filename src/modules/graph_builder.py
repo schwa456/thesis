@@ -7,8 +7,8 @@ import networkx as nx
 from tqdm import tqdm
 from abc import ABC, abstractmethod
 from sqlalchemy import inspect, create_engine
-from openai import AzureOpenAI
-
+from openai import AzureOpenAI, RateLimitError, APIError
+from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception_type
 
 logger = logging.getLogger(__name__)
 
@@ -30,25 +30,15 @@ class SimpleFKGraphBuilder(BaseGraphBuilder):
 
         if mode == 'lg55':
             self.manual_pks = {
-                "cmp": "CMP_SEQ",
-                "metric": "METRIC_SEQ",
-                "metric_cmp": "METRIC_CMP_SEQ",
-                "cmp_adm_lvl": "CMP_LVL_SEQ",
-                "metric_data": "METRIC_DATA_SEQ",
-                "metric_cmp_adm_lvl": "LVL_SEQ"
+
             }
 
             self.manual_fks = [
-                ("cmp", "CMP_SEQ", "metric_cmp", "CMP_SEQ"),
-                ("cmp", "CMP_SEQ", "cmp_adm_lvl", "CMP_SEQ"),
-                ("metric", "METRIC_SEQ", "metric_cmp", "METRIC_SEQ"),
-                ("metric", "METRIC_SEQ", "metric_cmp_adm_lvl", "METRIC_SEQ"),
-                ("cmp_adm_lvl", "CMP_LVL_SEQ", "metric_cmp_adm_lvl", "CMP_LVL_SEQ"),
-                ("metric_cmp_adm_lvl", "LVL_SEQ", "metric_data", "LVL_SEQ"),
+
             ]
 
     def build_graph(self, db_engine, db_id=None, bird_meta=None):
-        logger.info(f"Building Knowledge Graph for {db_id}...")
+        logger.debug(f"Building Knowledge Graph for {db_id}...")
 
         G = nx.Graph()
         inspector = inspect(db_engine)
@@ -288,7 +278,7 @@ class SimpleFKGraphBuilder(BaseGraphBuilder):
 
             if u_exists and v_exists:
                 G.add_edge(u, v, relation='foreign_key')
-                logger.debug(f"[FK Liked] {u} <-> {v}")
+                logger.debug(f"[FK Linked] {u} <-> {v}")
             else:
                 # 실패 원인 상세 로그
                 if not u_exists:
@@ -349,14 +339,22 @@ class ShortcutGraphBuilder(SimpleFKGraphBuilder):
         return G, tables
 
 class SemanticGraphBuilder(ShortcutGraphBuilder):
-    def __init__(self, config, cache_path="./data/cache_graphs"):
+    def __init__(self, config, cache_dir="./data/cache_graphs"):
         """
         Args:
             cache_path: 생성된 그래프를 저장/로드할 경로
         """
         super().__init__(mode=config['data']['mode'])
-        self.cache_path = cache_path
+        self.cache_dir = cache_dir
         self.config = config
+
+        gpt_config = self.config.get('gpt-config', {})
+        self.client = AzureOpenAI(
+            azure_endpoint = gpt_config.get('end_point', ''),
+            api_key=gpt_config.get('api_key', ''),
+            api_version=gpt_config.get('api_version', '')
+        )
+        self.model_name = gpt_config.get('model_deployment_name', '')
 
     def get_db_engine_for_db(self, db_id):
         mode = self.config['data']['mode']
@@ -371,7 +369,12 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
 
         return None
 
-    def build_graph(self, db_engine, db_id, bird_meta):
+    def build_graph(self, db_engine, db_id, bird_meta=None):
+        if bird_meta:
+            self.cache_path = os.path.join(self.cache_dir, f"{db_id}.pkl")
+        else:
+            self.cache_path = os.path.join(self.cache_dir, "lg55_db_semantic.pkl")
+            
         if os.path.exists(self.cache_path):
             logger.debug(f"Loading Cached Semantic Graph from {self.cache_path}...")
             with open(self.cache_path, 'rb') as f:
@@ -418,11 +421,11 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
 
             try:
                 description = self._call_llm(prompt)
-
                 G[u][v]['textual_label'] = description
             
             except Exception as e:
-                logger.error(f"Failed to generate label for {u} -> {v}: {e}")
+                logger.error(f"Failed to generate label for {u} -> {v}: {str(e)}")
+                G[u][v]['textual_label'] = "related to"
             
     
     def _create_edge_prompt(self, node_a, node_b, edge_data):
@@ -438,20 +441,12 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
         Output ONLY the description.
         """
     
+    @retry(
+            wait=wait_random_exponential(min=1, max=20),
+            stop=stop_after_attempt(5),
+            retry=retry_if_exception_type((RateLimitError, APIError, ConnectionError))
+    )
     def _call_llm(self, prompt):
-        gpt_config = self.config.get('gpt_config', {})
-
-        model_deployment_name = gpt_config.get('model_deployment_name', '')
-        end_point = gpt_config.get('end_point', '')
-        api_key = gpt_config.get('api_key', '')
-        api_version = gpt_config.get('api_version', '')
-
-        client = AzureOpenAI(
-            azure_endpoint = end_point,
-            api_key=api_key,
-            api_version=api_version
-        )
-
         messages = [
             {
                 "role": "user",
@@ -459,10 +454,11 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
             }
         ]
 
-        completion = client.chat.completions.create(
-            model=model_deployment_name,
+        completion = self.client.chat.completions.create(
+            model=self.model_name,
             messages=messages,
             temperature=0.0,
+            timeout=10.0
         )
 
         return completion.choices[0].message.content.strip()
