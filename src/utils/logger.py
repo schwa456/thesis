@@ -3,7 +3,7 @@ import sys
 import os
 from datetime import datetime, timedelta, timezone
 
-def setup_logger(log_dir="logs"):
+def setup_logger(mode, exp_name, log_dir="logs"):
     # 1. 로그 저장할 폴더 생성
     os.makedirs(log_dir, exist_ok=True)
 
@@ -37,7 +37,8 @@ def setup_logger(log_dir="logs"):
     root_logger.addHandler(console_handler)
 
     today = datetime.now().strftime("%Y-%m-%d")
-    file_handler = logging.FileHandler(f"{log_dir}/daily_logs/log_{today}.log", mode="w", encoding="utf-8")
+    os.makedirs(f"{log_dir}/exp_logs/{today}", exist_ok=True)
+    file_handler = logging.FileHandler(f"{log_dir}/exp_logs/{today}/{mode}_log_{exp_name}.log", mode="w", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     root_logger.addHandler(file_handler)
