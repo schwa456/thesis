@@ -7,8 +7,8 @@ import requests
 import traceback
 import pandas as pd
 from tqdm import tqdm
-from datetime import datetime
-from sqlalchemy import create_engine, inspect,   text
+from pathlib import Path
+from sqlalchemy import create_engine, inspect, text
 
 from src.pipeline import Pipeline
 from src.utils.evaluation import *
@@ -16,10 +16,7 @@ from src.modules.generator import *
 from src.utils.graph_to_mschema import *
 from src.utils.logger import *
 from src.utils.data_loader import *
-
-setup_logger()
-
-logger = logging.getLogger(__name__)
+from src.utils.domain_rules import *
 
 SERVER_URL = "http://localhost:8000"
 
@@ -69,14 +66,22 @@ def execute_sql(engine, sql_query):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='./config/exp_config.yaml', help='Path to config file')
+    parser.add_argument('--config', type=str, default='./config/main_framework.yaml', help='Path to config file')
     args = parser.parse_args()
 
     # 1. Config 로드
-    logger.info(f"[INFO] Loading Configuration from {args.config}...")
     config = load_config(args.config)
     loader = DataLoader(config)
-    logger.info("[INFO] Configuration Loading Completed.")
+
+    config_path = args.config
+    exp_name = Path(config_path).stem
+    
+    mode = config['data']['mode']
+    output_csv = f"./output/{mode}_exp_result_{exp_name}.csv"
+
+    setup_logger(mode, exp_name)
+
+    logger = logging.getLogger(__name__)
 
     # 2. Pipeline 초기화
     logger.info("[INFO] Initializing Pipeline...")
@@ -92,12 +97,17 @@ def main():
     gen_config = config.get('generator', {})
     server_url = gen_config.get('url')
     prompt_path = gen_config.get('prompt_path').format(mode=config['data']['mode'])
-
+    """
     generator = XiYanGenerator(
         server_url=server_url,
         prompt_path=prompt_path
     )
-    #generator = GPTGenerator(config.get('gpt-config', ''))
+    """
+    generator = GPTGenerator(
+       config.get('gpt-config', {}),
+       prompt_path=prompt_path
+    )
+    
 
     # 5. Evaluation
     evaluator = SchemaEvaluator()
@@ -106,16 +116,11 @@ def main():
     
     evaluation_logs = []
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_csv = f"./logs/evaluation_results/evaluation_result_{timestamp}.csv"
-
-
     pbar = tqdm(dataset)
 
     for idx, item in enumerate(pbar):
         question = item['question']
         db_id = item['db_id']
-        evidence = item.get('evidence', '')
         gt_schema = item['gt_schema']
         gold_sql = item.get("sql", "")
         bird_meta = item.get('meta_schema', '')
@@ -142,6 +147,11 @@ def main():
             evaluation_logs.append(log_entry)
             continue
 
+        bird_evidence = item.get('evidence', '')
+        domain_evidence = get_domain_hints(question)
+        time_context = get_time_context(db_engine)
+        evidence = f"{bird_evidence}\n{domain_evidence}\n{time_context}"
+
         try:
             # 파이프라인 실행
             result = pipeline.run(
@@ -155,9 +165,10 @@ def main():
 
             pred_schema = result.get('selected_items', [])
             final_schema_str = result.get('final_schema_str', '')
+            log_entry['selected_schema'] = pred_schema
 
             # 6. SQL Query Generation
-            generated_sql = generator.generate_query(question=question, schema_info=final_schema_str)
+            generated_sql = generator.generate_query(question=question, schema_info=final_schema_str, evidence=evidence)
 
             if generated_sql:
                 generated_sql = generated_sql.replace("```sql", "").replace("```", "").strip()
@@ -190,9 +201,6 @@ def main():
             log_entry['error_msg'] = str(e)
 
         evaluation_logs.append(log_entry)
-
-        if config['evaluation_log'] and (idx + 1) % 5 == 0:
-            pd.DataFrame(evaluation_logs).to_csv(output_csv, index=False, encoding='utf-8-sig')
     
     final_df = pd.DataFrame(evaluation_logs)
 
@@ -207,6 +215,7 @@ def main():
         logger.info(f"Avg. Schema Recall:    {final_df['schema_recall'].mean():.4f}")
         logger.info(f"Avg. Schema Precision: {final_df['schema_precision'].mean():.4f}")
         logger.info(f"Avg. Schema F1:        {final_df['schema_f1'].mean():.4f}")
+        logger.info(f"Avg. Schema Jaccard:   {final_df['schema_jaccard'].mean():.4f}")
         logger.info("-" * 30)
         logger.info(f"Execution Accuracy (EX): {final_df['ex'].mean():.4f}")
         logger.info(f"Exact Matching (EM):     {final_df['em'].mean():.4f}")
