@@ -167,9 +167,30 @@ def _get_column_examples(db_engine, table, col, is_bird=False):
             
             values = []
             for row in result:
-                values.append(row[0])
+                values.append(row[0])   
 
             return values
         
     except Exception:
         return []
+    
+def nodes_to_mschema(retrieved_nodes, full_graph, db_engine, db_id, bird_meta=None):
+    final_nodes = set(retrieved_nodes)
+
+    for node in retrieved_nodes:
+        if '.' in node:
+            table_name = node.split('.')[0]
+
+            if full_graph.has_node(table_name):
+                final_nodes.add(table_name)
+    
+    focused_graph = full_graph.subgraph(final_nodes).copy()
+
+    schema_string = graph_to_mschema(
+        focused_graph=focused_graph,
+        db_engine=db_engine,
+        db_id=db_id,
+        bird_meta=bird_meta
+    )
+
+    return schema_string
