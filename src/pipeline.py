@@ -4,7 +4,7 @@ from src.modules.node_selector import *
 from src.modules.retriever import *
 from src.modules.agent import *
 from src.modules.traverser import *
-from src.utils.graph_to_mschema import graph_to_mschema
+from src.utils.graph_to_mschema import *
 
 import logging
 
@@ -15,20 +15,22 @@ class Pipeline:
         self.config = config
         self.graph_cache = {}
         self.current_db_id = None
-        agent_server_url = config.get('agent_url', 'http://localhost:8000')
 
         # 1. Embedder
-        self.embedder = SchemaEmbedder(model_name=config['embedder_model_id'])
+        embedder_model_id = config['embedder']['model_id']
+        self.embedder = SchemaEmbedder(model_name=embedder_model_id)
 
-        logger.info(f"Embedder Model: {config['embedder_model_id']}")
+        logger.info(f"Embedder Model: {embedder_model_id}")
 
         # 2. Graph Builder
         if config['graph_type'] == 'simple':
-            self.graph_builder = SimpleFKGraphBuilder()
+            self.graph_builder = SimpleFKGraphBuilder(mode=config['data']['mode'])
         elif config['graph_type'] == 'semantic':
-            self.graph_builder = SemanticGraphBuilder()
+            self.graph_builder = SemanticGraphBuilder(self.config)
         elif config['graph_type'] == 'shortcut':
             self.graph_builder = ShortcutGraphBuilder()
+        elif config['graph_type'] == 'none':
+            self.graph_builder = SimpleFKGraphBuilder(mode=config['data']['mode'])
 
         logger.info(f"Graph Builder Type: {config['graph_type']}")
 
@@ -41,6 +43,8 @@ class Pipeline:
                 )
         elif config['selector_type'] == 'fixed':
             self.node_selector = FixedTopKSelector(k=config.get('top_k', 3))
+        elif config['selector_type'] == 'none':
+            self.node_selector = None
 
         logger.info(f"Node Selector Type: {config['selector_type']}")
         
@@ -49,6 +53,8 @@ class Pipeline:
             self.traverser = ShortestPathTraverser(max_hops=config.get('max_hops', 2))
         elif config['traverser_type'] == 'neighbor':
             self.traverser = NeighborTraverser(hops=config.get('hops', 1))
+        elif config['traverser_type'] == 'none':
+            self.traverser = None
         
         logger.info(f"Graph Traverser Type: {config['traverser_type']}")
 
@@ -63,15 +69,24 @@ class Pipeline:
             self.retriever = PCSTRetriever(
                 embedder=self.embedder
             )
+        elif config['retriever_type'] == 'none':
+            self.retriever = None
 
         logger.info(f"Retriever Type: {config['retriever_type']}")
 
         # 6. Agent
-        self.agent = FilteringAgent(agent_server_url)
+        agent_config = config.get('agent')
+        if agent_config['usage']:
+            server_url = agent_config.get('url')
+            system_prompt_path = agent_config.get('system_prompt_path').format(mode=config['data']['mode'])
+            user_prompt_path = agent_config.get('user_prompt_path').format(mode=config['data']['mode'])
+            self.agent = FilteringAgent(server_url, system_prompt_path, user_prompt_path)
+        else:
+            self.agent = None
 
-        logger.info(f"Agent Model ID: {config['agent_model_id']}")
+        logger.info(f"Agent Model ID: {config['agent']['model_id']}")
     
-    def _load_graph_context(self, db_id, db_engine):
+    def _load_graph_context(self, db_id, db_engine, bird_meta):
         """
         1. 요청된 db_id에 맞는 그래프를 로드합니다. (메모리 캐시 -> 파일 캐시 -> 빌드 순)
         2. DB가 변경된 경우 Retriever에게 새로운 그래프를 인덱싱하도록 지시합니다.
@@ -87,7 +102,7 @@ class Pipeline:
                 os.makedirs(cache_dir, exist_ok=True)
                 self.graph_builder.cache_path = os.path.join(cache_dir, f"{db_id}_semantic.pkl")
             
-            G, _ = self.graph_builder.build_graph(db_engine)
+            G, _ = self.graph_builder.build_graph(db_engine, db_id, bird_meta)
             self.graph_cache[db_id] = G
         
         if self.current_db_id != db_id:
@@ -182,24 +197,7 @@ class Pipeline:
         logger.debug(f"Smart Expansion: {len(current_nodes)} -> {len(final_set)} nodes (Target Tables: {len(all_target_tables)})")
         return final_set
 
-
-    def run(self, question, db_id, db_engine, status_callback=None):
-        # 1. Graph Build
-        if status_callback: status_callback("Graph Check")
-        G = self._load_graph_context(db_id, db_engine)
-
-        initial_schema_str = graph_to_mschema(G, db_engine)
-        with open('schema_str.txt', 'w', encoding='utf-8-sig') as f:
-            f.write(initial_schema_str)
-
-        # 2. Schema Retrieval
-        if status_callback: status_callback("Retrieving")
-        retrieved_nodes_list = self.retriever.retrieve(G, question)
-
-        logger.debug(f"Retrieved Nodes ({len(retrieved_nodes_list)}): {retrieved_nodes_list}")
-    
-        # 3. Agent Filtering
-        if status_callback: status_callback("Agent Filtering")
+    def _filter_by_agent(self, G, question, retrieved_nodes_list, evidence):
         if not retrieved_nodes_list:
             logger.warning("No nodes retrieved.")
             final_items = []
@@ -207,7 +205,7 @@ class Pipeline:
         else:
             retrieved_subgraph = G.subgraph(retrieved_nodes_list)
             try:
-                final_items = self.agent.filter_schema(question, retrieved_subgraph)
+                final_items = self.agent.filter_schema(question, retrieved_subgraph, evidence)
             except Exception as e:
                 logger.error(f"Agent Logic Failed: {e}")
                 final_items = []
@@ -219,11 +217,10 @@ class Pipeline:
         if not final_items:
             logger.info("Agent selected nothing. Using all retrieved nodes.")
             final_items = retrieved_nodes_list
-
-        # 4. Result Formatting
-        # Agent가 선택한 아이템을 다시 Graph로 확장
-        if status_callback: status_callback("Formatting")
-
+        
+        return final_items
+    
+    def _formatting_filtered_result(self, G, final_items, retrieved_nodes_list, db_engine, db_id, bird_meta=None):
         graph_node_lookup = {n.lower(): n for n in G.nodes}
         
         final_nodes_set = set()
@@ -258,8 +255,7 @@ class Pipeline:
                 else:
                     logger.warning(f"Ignored Hallucinated Item: {item}")
         
-        if not final_nodes_set:
-            if status_callback: status_callback("Agent Failed -> Using Retrieval")  
+        if not final_nodes_set: 
             logger.warning(f"[WARNING] Agent selected invalid nodes. Falling back to retrieval results.")
             final_nodes_set = set(retrieved_nodes_list)
 
@@ -286,7 +282,6 @@ class Pipeline:
                             final_nodes_set.add(target_table)
 
         # 4-3. Node Expansion: 선택된 테이블의 모든 컬럼 활용
-        
         expanded_nodes = self._boost_recall_neighbor_graph(G, final_nodes_set)
 
         logger.debug(f"Final Node Count: {len(final_nodes_set)} -> {len(expanded_nodes)}")
@@ -298,10 +293,48 @@ class Pipeline:
             final_focused_graph = G.subgraph(list(expanded_nodes)).copy()
         
         # M-Schema 문자열 반환
-        schema_string = graph_to_mschema(final_focused_graph, db_engine)
+        schema_string = graph_to_mschema(final_focused_graph, db_engine, db_id=db_id, bird_meta=bird_meta)
 
-        if status_callback: status_callback("Done")
-        logger.debug(f"Filtered Schema:\n{schema_string}")
+        return schema_string, expanded_nodes
+
+    def run(self, question, db_id, db_engine, evidence=None, bird_meta=None, status_callback=None):
+        # 1. Graph Build
+        if status_callback: status_callback("Graph Check")
+        if self.retriever:
+            G = self._load_graph_context(db_id, db_engine, bird_meta)
+        else:
+            G, tables = self.graph_builder.build_graph(db_engine, db_id)
+            schema_string = graph_to_mschema(G, db_engine, db_id)
+
+        # 2. Schema Retrieval
+        if status_callback: status_callback("Retrieving")
+        if self.retriever:
+            retrieved_nodes_list = self.retriever.retrieve(G, question)
+        else: 
+            retrieved_nodes_list = [n for n, attr in G.nodes(data=True) if attr.get('type') == 'column']
+
+        logger.debug(f"Retrieved Nodes ({len(retrieved_nodes_list)}): {retrieved_nodes_list}")
+    
+        # 3. Agent Filtering
+        if status_callback: status_callback("Agent Filtering")
+        if self.agent:
+            final_items = self._filter_by_agent(G, question, retrieved_nodes_list, evidence)
+        else: pass
+
+        # 4. Result Formatting
+        # Agent가 선택한 아이템을 다시 Graph로 확장
+        if status_callback: status_callback("Formatting")
+        if self.agent and self.config['agent']['formatting']:
+            schema_string, expanded_nodes = self._formatting_filtered_result(G, final_items, retrieved_nodes_list, db_engine, db_id, bird_meta)
+
+            if status_callback: status_callback("Done")
+            logger.debug(f"Filtered Schema:\n{schema_string}")
+        elif self.agent and not self.config['agent']['formatting']:
+            expanded_nodes = final_items
+            schema_string = nodes_to_mschema(expanded_nodes, G, db_engine, db_id, bird_meta)  
+        else:
+            expanded_nodes = retrieved_nodes_list
+            schema_string = nodes_to_mschema(retrieved_nodes_list, G, db_engine, db_id, bird_meta)
 
         return {
             "question": question,
