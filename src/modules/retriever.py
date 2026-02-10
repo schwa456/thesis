@@ -299,7 +299,7 @@ class HybridPCSTRetriever(PCSTRetriever):
 
         seed_items = seed_result.items() if isinstance(seed_result, dict) else {k: 1.0 for k in seed_result}.items()
 
-        logger.info(f"[INFO] Hybrid Retrieval Seeds: {list(seed_items)}")
+        logger.debug(f"[DEBUG] Hybrid Retrieval Seeds: {list(seed_items)}")
 
         for node_name, confidence in seed_items:
             if node_name in self.node_to_idx:
@@ -329,7 +329,7 @@ class HybridPCSTRetriever(PCSTRetriever):
         # 7. Mandatory Neighbor Node Expansion
         final_nodes = self._expand_neighbors(G, selected_nodes)
 
-        logger.info(f"[INFO] Hybrid Retrieval Final Nodes: {len(final_nodes)} (Graph Size Reduced)")
+        logger.debug(f"[DEBUG] Hybrid Retrieval Final Nodes: {len(final_nodes)} (Graph Size Reduced)")
         return list(final_nodes)
     
     def _prepare_pcst_input_hybrid(self, G):
