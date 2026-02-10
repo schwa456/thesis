@@ -1,1 +1,121 @@
-agent_log
+/home/kibo/peoples/hyeonjin/thesis/thesis/server.py:37: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+[2026-02-10 15:03:00] INFO server.py:32: [SERVER] Loading configuration from ./config/server_config.yaml...
+[2026-02-10 15:03:00] INFO server.py:210: [INFO] Loading Agent Model: Qwen/Qwen3-8B-AWQ ...
+[2026-02-10 15:03:00] INFO server.py:211: [INFO] Model: Qwen/Qwen3-8B-AWQ
+[2026-02-10 15:03:00] INFO server.py:212: [INFO] Port: 8000
+[2026-02-10 15:03:00] INFO server.py:213: [INFO] GPU Util: 0.8
+INFO:     Started server process [574418]
+INFO:     Waiting for application startup.
+[2026-02-10 15:03:00] INFO server.py:40: [STARTUP] Initializing vLLM Engine within Event Loop...
+The argument `trust_remote_code` is to be used with Auto classes. It has no effect here and is ignored.
+INFO 02-10 15:03:01 [model.py:637] Resolved architecture: Qwen3ForCausalLM
+INFO 02-10 15:03:01 [model.py:1750] Using max model len 16384
+INFO 02-10 15:03:02 [scheduler.py:228] Chunked prefill is enabled with max_num_batched_tokens=2048.
+Parse safetensors files:   0%|          | 0/2 [00:00<?, ?it/s]Parse safetensors files:  50%|█████     | 1/2 [00:00<00:00,  1.38it/s]Parse safetensors files: 100%|██████████| 2/2 [00:00<00:00,  2.75it/s]
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:06 [core.py:93] Initializing a V1 LLM engine (v0.12.0) with config: model='Qwen/Qwen3-8B-AWQ', speculative_config=None, tokenizer='Qwen/Qwen3-8B-AWQ', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=True, dtype=torch.float16, max_seq_len=16384, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=awq, enforce_eager=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01), seed=0, served_model_name=Qwen/Qwen3-8B-AWQ, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'level': None, 'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['none'], 'splitting_ops': ['vllm::unified_attention', 'vllm::unified_attention_with_output', 'vllm::unified_mla_attention', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::linear_attention', 'vllm::plamo2_mamba_mixer', 'vllm::gdn_attention_core', 'vllm::kda_attention', 'vllm::sparse_attn_indexer'], 'compile_mm_encoder': False, 'compile_sizes': [], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1)>, 'cudagraph_num_of_warmups': 1, 'cudagraph_capture_sizes': [1, 2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232, 240, 248, 256], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': False, 'fuse_act_quant': False, 'fuse_attn_quant': False, 'eliminate_noops': True, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False}, 'max_cudagraph_capture_size': 256, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>}, 'local_cache_dir': None}
+[0;36m(EngineCore_DP0 pid=575218)[0;0m ERROR 02-10 15:03:06 [fa_utils.py:72] Cannot use FA version 2 is not supported due to FA2 is only supported on devices with compute capability >= 8
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:07 [parallel_state.py:1200] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://165.132.76.241:48393 backend=nccl
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:07 [parallel_state.py:1408] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank 0
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:08 [gpu_model_runner.py:3467] Starting to load model Qwen/Qwen3-8B-AWQ...
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:09 [cuda.py:411] Using FLASHINFER attention backend out of potential backends: ['FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION']
+[0;36m(EngineCore_DP0 pid=575218)[0;0m Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+[0;36m(EngineCore_DP0 pid=575218)[0;0m Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:02<00:02,  2.52s/it]
+[0;36m(EngineCore_DP0 pid=575218)[0;0m Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:03<00:00,  1.56s/it]
+[0;36m(EngineCore_DP0 pid=575218)[0;0m Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:03<00:00,  1.71s/it]
+[0;36m(EngineCore_DP0 pid=575218)[0;0m 
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:13 [default_loader.py:308] Loading weights took 3.53 seconds
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:14 [gpu_model_runner.py:3549] Model loading took 5.7071 GiB memory and 5.249691 seconds
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:30 [backends.py:655] Using cache directory: /home/kibo/.cache/vllm/torch_compile_cache/64f3844dc3/rank_0_0/backbone for vLLM's torch.compile
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:30 [backends.py:715] Dynamo bytecode transform time: 15.33 s
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:37 [backends.py:216] Directly load the compiled graph(s) for dynamic shape from the cache, took 6.049 s
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:40 [monitor.py:34] torch.compile takes 21.38 s in total
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:42 [gpu_worker.py:359] Available KV cache memory: 6.14 GiB
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:42 [kv_cache_utils.py:1286] GPU KV cache size: 44,688 tokens
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:42 [kv_cache_utils.py:1291] Maximum concurrency for 16,384 tokens per request: 2.73x
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:42 [kernel_warmup.py:65] Warming up FlashInfer attention.
+[0;36m(EngineCore_DP0 pid=575218)[0;0m Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   0%|          | 0/35 [00:00<?, ?it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   3%|▎         | 1/35 [00:00<00:07,  4.74it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   6%|▌         | 2/35 [00:00<00:06,  4.95it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   9%|▊         | 3/35 [00:00<00:06,  5.05it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  11%|█▏        | 4/35 [00:00<00:06,  5.09it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  14%|█▍        | 5/35 [00:00<00:05,  5.06it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  17%|█▋        | 6/35 [00:01<00:05,  5.09it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  20%|██        | 7/35 [00:01<00:05,  5.11it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  23%|██▎       | 8/35 [00:01<00:05,  5.10it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  26%|██▌       | 9/35 [00:01<00:05,  5.19it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  29%|██▊       | 10/35 [00:01<00:04,  5.23it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  31%|███▏      | 11/35 [00:02<00:04,  5.28it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  34%|███▍      | 12/35 [00:02<00:04,  5.19it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  37%|███▋      | 13/35 [00:02<00:04,  5.18it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  40%|████      | 14/35 [00:02<00:04,  5.16it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  43%|████▎     | 15/35 [00:02<00:03,  5.11it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  46%|████▌     | 16/35 [00:03<00:03,  5.04it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  49%|████▊     | 17/35 [00:03<00:03,  5.11it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  51%|█████▏    | 18/35 [00:03<00:03,  5.18it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  54%|█████▍    | 19/35 [00:03<00:03,  5.23it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  57%|█████▋    | 20/35 [00:03<00:02,  5.28it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  60%|██████    | 21/35 [00:04<00:02,  5.23it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  63%|██████▎   | 22/35 [00:04<00:02,  5.26it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  66%|██████▌   | 23/35 [00:04<00:02,  5.30it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  69%|██████▊   | 24/35 [00:04<00:02,  5.35it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  71%|███████▏  | 25/35 [00:04<00:01,  5.37it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  74%|███████▍  | 26/35 [00:04<00:01,  5.40it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  77%|███████▋  | 27/35 [00:05<00:01,  5.35it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  80%|████████  | 28/35 [00:05<00:01,  5.41it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  83%|████████▎ | 29/35 [00:05<00:01,  5.44it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  86%|████████▌ | 30/35 [00:05<00:00,  5.47it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  89%|████████▊ | 31/35 [00:05<00:00,  5.46it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  91%|█████████▏| 32/35 [00:06<00:00,  5.44it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  94%|█████████▍| 33/35 [00:06<00:00,  5.45it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  97%|█████████▋| 34/35 [00:06<00:00,  5.48it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 35/35 [00:06<00:00,  5.08it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 35/35 [00:06<00:00,  5.23it/s]
+[0;36m(EngineCore_DP0 pid=575218)[0;0m Capturing CUDA graphs (decode, FULL):   0%|          | 0/19 [00:00<?, ?it/s]Capturing CUDA graphs (decode, FULL):   5%|▌         | 1/19 [00:00<00:03,  5.32it/s]Capturing CUDA graphs (decode, FULL):  11%|█         | 2/19 [00:00<00:03,  5.44it/s]Capturing CUDA graphs (decode, FULL):  16%|█▌        | 3/19 [00:00<00:02,  5.50it/s]Capturing CUDA graphs (decode, FULL):  21%|██        | 4/19 [00:00<00:02,  5.51it/s]Capturing CUDA graphs (decode, FULL):  26%|██▋       | 5/19 [00:00<00:02,  5.48it/s]Capturing CUDA graphs (decode, FULL):  32%|███▏      | 6/19 [00:01<00:02,  5.49it/s]Capturing CUDA graphs (decode, FULL):  37%|███▋      | 7/19 [00:01<00:02,  5.53it/s]Capturing CUDA graphs (decode, FULL):  42%|████▏     | 8/19 [00:01<00:01,  5.54it/s]Capturing CUDA graphs (decode, FULL):  47%|████▋     | 9/19 [00:01<00:01,  5.56it/s]Capturing CUDA graphs (decode, FULL):  53%|█████▎    | 10/19 [00:01<00:01,  5.65it/s]Capturing CUDA graphs (decode, FULL):  58%|█████▊    | 11/19 [00:01<00:01,  5.70it/s]Capturing CUDA graphs (decode, FULL):  63%|██████▎   | 12/19 [00:02<00:01,  5.74it/s]Capturing CUDA graphs (decode, FULL):  68%|██████▊   | 13/19 [00:02<00:01,  5.80it/s]Capturing CUDA graphs (decode, FULL):  74%|███████▎  | 14/19 [00:02<00:00,  5.73it/s]Capturing CUDA graphs (decode, FULL):  79%|███████▉  | 15/19 [00:02<00:00,  5.79it/s]Capturing CUDA graphs (decode, FULL):  84%|████████▍ | 16/19 [00:02<00:00,  5.85it/s]Capturing CUDA graphs (decode, FULL):  89%|████████▉ | 17/19 [00:02<00:00,  5.87it/s]Capturing CUDA graphs (decode, FULL):  95%|█████████▍| 18/19 [00:03<00:00,  5.90it/s]Capturing CUDA graphs (decode, FULL): 100%|██████████| 19/19 [00:03<00:00,  5.88it/s]Capturing CUDA graphs (decode, FULL): 100%|██████████| 19/19 [00:03<00:00,  5.69it/s]
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:53 [gpu_model_runner.py:4466] Graph capturing finished in 11 secs, took 2.18 GiB
+[0;36m(EngineCore_DP0 pid=575218)[0;0m INFO 02-10 15:03:53 [core.py:254] init engine (profile, create kv cache, warmup model) took 39.07 seconds
+[2026-02-10 15:03:55] INFO server.py:48: [STARTUP] vLLM Engine Initialized Successfully.
+[2026-02-10 15:03:55] INFO server.py:54: [STARTUP] Warming up vLLM Engine...
+[2026-02-10 15:03:56] INFO server.py:59: [STARTUP] Warm-up Completed.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:41304 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35074 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35086 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35096 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35098 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46946 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45720 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58590 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45126 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56424 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54586 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49896 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33648 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37848 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55246 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42366 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46312 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49776 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53026 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59368 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34354 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33514 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46340 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43324 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54626 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41366 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47006 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36580 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54680 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50914 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42310 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51358 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48342 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53282 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47814 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46118 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45204 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46244 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44128 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57052 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42786 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35838 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46494 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41032 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45512 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58688 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53010 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36148 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48696 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38286 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56812 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59400 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47266 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38368 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32782 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38244 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58540 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37242 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48848 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48858 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48864 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48868 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46658 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38996 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54826 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48708 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58218 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58684 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41260 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55592 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37282 - "POST /generate HTTP/1.1" 200 OK

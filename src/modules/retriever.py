@@ -131,9 +131,10 @@ class PCSTRetriever(BaseRetriever):
 
         nodes = list(G.nodes)
         node_texts = []
-        node_ids = []
 
+        self.node_ids = nodes
         self.node_to_idx = {n: i for i, n in enumerate(nodes)}
+        self.idx_to_node = {i: n for i, n in enumerate(nodes)}
 
         for n in nodes:
             attr = G.nodes[n]
@@ -157,9 +158,8 @@ class PCSTRetriever(BaseRetriever):
                 text += " | Context: " + ", ".join(edge_contexts)
 
             node_texts.append(text)
-            node_ids.append(n)
         
-        self.embedder.index_schema_nodes(node_texts, node_ids)
+        self.embedder.index_schema_nodes(node_texts, self.node_ids)
 
         logger.debug(f"Indexed {len(nodes)} nodes for PCST.")
     
@@ -241,3 +241,132 @@ class PCSTRetriever(BaseRetriever):
         logger.debug(f"PCST Selected {len(expanded_nodes)} nodes (connects disconnected components).")
 
         return expanded_nodes
+
+class HybridPCSTRetriever(PCSTRetriever):
+    """ Agent Seed Selection -> PCST Expansion """
+    def __init__(self,
+                 embedder: SchemaEmbedder,
+                 node_selector: BaseNodeSelector,
+                 cost_e: float=0.5,
+                 agent_weight: float=10.0
+                 ):
+        
+        super().__init__(embedder, cost_e)
+
+        self.selector = node_selector
+        self.agent_weight = agent_weight
+
+        if not hasattr(self, 'node_ids'):
+            self.node_ids = []
+        if not hasattr(self, 'node_to_idx'):
+            self.node_to_idx = {}
+    
+    def retrieve(self, G, question: str, top_k: int = 20) -> List[str]:
+        logger.debug(f"[DEBUG] Retrieval Processing: {question}")
+
+        # 0. Check Graph Indexing
+        if not self.node_to_idx or not self.node_ids:
+            logger.debug("Graph index not found. Building index now...")
+            self.index_graph(G)
+        
+        # 1. Calculate Base Prizes (Embedding Score)
+        scores_tensor = self.embedder.get_similarity_scores(question)
+        if scores_tensor is not None:
+            base_prizes = scores_tensor.cpu().numpy()
+            base_prizes = np.maximum(base_prizes, 0.0)
+        else:
+            base_prizes = np.zeros(len(self.node_ids))
+
+        # 2. Agent Seed Selection
+
+        if not self.node_ids:
+            logger.error("[ERROR] self.node_ids is empty even after indexing.")
+            return []
+
+        try:
+            seed_result = self.selector.select_seed(scores_tensor, self.node_ids, question=question)
+        except Exception as e:
+            logger.warning(f"[WARNING] Agent Selection Failed: {e}. Fallback to Embedding only.")
+            seed_result = {}
+        
+        # 2-1. Detect Unanswerable
+        if not seed_result:
+            logger.warning(f"[WARNING] Agent Found NO relevant tables. Stopping retrieval.")
+            return []
+        
+        # 3. Hybrid Prize Scoring
+        final_prizes = base_prizes.copy()
+
+        seed_items = seed_result.items() if isinstance(seed_result, dict) else {k: 1.0 for k in seed_result}.items()
+
+        logger.info(f"[INFO] Hybrid Retrieval Seeds: {list(seed_items)}")
+
+        for node_name, confidence in seed_items:
+            if node_name in self.node_to_idx:
+                idx = self.node_to_idx[node_name]
+                boost_score = confidence * self.agent_weight
+                final_prizes[idx] = max(final_prizes[idx], boost_score)
+        
+        # 4. Ready for PCST Input
+        edges, costs = self._prepare_pcst_input_hybrid(G)
+
+        if len(edges) == 0:
+            return list(seed_result.keys())
+        
+        # 5. Run PCST Algorithm
+        try:
+            vertices, _ = pcst_fast.pcst_fast(edges, final_prizes, costs, -1, 1, 'gw', 0)
+        except Exception as e:
+            logger.error(f"[ERROR] PCST Failed: {e}. Returning Seeds Only.")
+            return list(seed_result.keys())
+        
+        # 6. Mapping Result Nodes
+        selected_nodes = {self.idx_to_node[i] for i in vertices}
+
+        for s, _ in seed_items:
+            selected_nodes.add(s)
+
+        # 7. Mandatory Neighbor Node Expansion
+        final_nodes = self._expand_neighbors(G, selected_nodes)
+
+        logger.info(f"[INFO] Hybrid Retrieval Final Nodes: {len(final_nodes)} (Graph Size Reduced)")
+        return list(final_nodes)
+    
+    def _prepare_pcst_input_hybrid(self, G):
+        edges_list = []
+        costs_list = []
+
+        for u, v, data in G.edges(data=True):
+            if u not in self.node_to_idx or v not in self.node_to_idx:
+                continue
+
+            u_idx = self.node_to_idx[u]
+            v_idx = self.node_to_idx[v]
+
+            relation = data.get('relation')
+
+            if relation == 'table_foreign_key':
+                cost = 0.1
+            elif relation == 'foreign_key':
+                cost = 0.2
+            elif relation in ['table_column', 'primary_key']:
+                cost = 0.05
+            else:
+                cost = self.cost_e
+            
+            edges_list.append([u_idx, v_idx])
+            costs_list.append(cost)
+
+        if not edges_list:
+            return np.zeros((0, 2), dtype=np.int64), np.zeros((0, ), dtype=np.float64)
+        
+        return np.array(edges_list, dtype=np.int64), np.array(costs_list, dtype=np.float64)
+    
+    def _expand_neighbors(self, G, nodes_set):
+        expanded = set(nodes_set)
+        for node in nodes_set:
+            if node in G and G.nodes[node].get('type') == 'table':
+                for neighbor in G.neighbors(node):
+                    if G.nodes[neighbor].get('is_pk', False):
+                        expanded.add(neighbor)
+        return expanded

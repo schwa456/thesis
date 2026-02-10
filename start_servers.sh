@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "[INIT] Cleaning up old processes..."
+pkill -u $(whoami) -f "server.py"
+sleep 2
+
 # 1. 안전장치: 스크립트 종료 (Ctrl + c) 시 실행 중인 Python Process들도 같이 Kill
 clean_up() {
     echo ""
@@ -36,14 +40,14 @@ echo "[INFO] Starting Servers..."
 
 # 2. Agent Server (GPU 0번, agent_server.log)
 echo "[INFO] Starting Agent Server on GPU 0..."
-CUDA_VISIBLE_DEVICES=0 python server.py --role agent --port 8000 > logs/server_logs/agent_server.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python server.py --role agent --port 8000 > logs/server_logs/agent_server.log 2>&1 &
 AGENT_PID=$!
 
 wait_for_server 8000 "Agent"
 
 # 3. Generator Server (GPU 1번, generator_server.log)
 echo "[INFO] Starting Generator Server on GPU 1..."
-CUDA_VISIBLE_DEVICES=1 python server.py --role generator --port 8001 > logs/server_logs/generator_server.log 2>&1 &
+CUDA_VISIBLE_DEVICES=2 python server.py --role generator --port 8001 > logs/server_logs/generator_server.log 2>&1 &
 GEN_PID=$!
 
 wait_for_server 8001 "Generator"

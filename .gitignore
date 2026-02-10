@@ -1,0 +1,6 @@
+# DB 파일 무시
+*.sqlite
+*.db
+
+# DB 폴더 전체 무시
+data/BIRD_Dev/dev_databases

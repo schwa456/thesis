@@ -6,15 +6,15 @@ data:
   bird:
     dev_json_path: "data/BIRD_dev/dev.json"
     dev_table_path: "data/BIRD_dev/dev_tables.json"
-    db_root_path: "data/BIRD_dev/dev_databases/dev_databases"
+    db_root_path: "data/BIRD_dev/dev_databases"
 
 # 1. Graph Construction
 # Options: 'simple' (FK Based), 'semantic' (LLM enhanced), 'shortcut' (Table - Table shortcut node)
 graph_type: "semantic"
 
 # 2. Initial Node Selection
-# Options: 'fixed' (Top-k), 'adaptive' (Threshold based)
-selector_type: "adaptive"
+# Options: 'fixed' (Top-k), 'adaptive' (Threshold based), 'agent'
+selector_type: "agent"
 top_k: 3        # Used if selector_type is 'fixed'
 alpha: 0.8      # Used if selector_type is 'adaptive' (ratio to top score)
 min_k: 2        # Minimum seeds for adaptive
@@ -27,8 +27,10 @@ max_hops: 5     # For shortest_path
 hops: 1         # For neighbor
 
 # 4. Retriever
-# Options: 'graph_schema', 'pcst'
-retriever_type: 'pcst'
+# Options: 'graph_schema', 'pcst', 'hybrid'
+retriever_type: 'hybrid'
+pcst_cost: 0.5      # For hybrid
+agent_weight: 10.0  # For hybrid
 
 # 4. Agent & LLM
 embedder: 
@@ -38,14 +40,14 @@ agent:
   usage: True
   formatting: True
   url: "http://localhost:8000"
-  model_id: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
-  system_prompt_path: "./prompts/{mode}/agent/system.md"
-  user_prompt_path: "./prompts/{mode}/agent/user.md"
+  model_id: "Qwen/Qwen3-8B-AWQ"
+  system_prompt_path: "./prompts/agent/system.md"
+  user_prompt_path: "./prompts/agent/user.md"
 
 generator:
   url: "http://localhost:8001"
-  model_id: "XGenerationLab/XiYanSQL-QwenCoder-32B-2504"
-  prompt_path: "./prompts/{mode}/sql_generation.md"
+  model_id: "XGenerationLab/XiYanSQL-QwenCoder-7B-2504"
+  prompt_path: "./prompts/sql_generation.md"
 
 # 5. Evaluation Log Enable
 evaluation_log: True

@@ -2,12 +2,12 @@ import os
 import difflib
 import logging
 import pickle
-import openai
+import asyncio
 import networkx as nx
 from tqdm import tqdm
 from abc import ABC, abstractmethod
 from sqlalchemy import inspect, create_engine
-from openai import AzureOpenAI, RateLimitError, APIError
+from openai import AsyncOpenAI, RateLimitError, APIError
 from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception_type
 
 logger = logging.getLogger(__name__)
@@ -348,13 +348,25 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
         self.cache_dir = cache_dir
         self.config = config
 
-        gpt_config = self.config.get('gpt-config', {})
-        self.client = AzureOpenAI(
-            azure_endpoint = gpt_config.get('end_point', ''),
-            api_key=gpt_config.get('api_key', ''),
-            api_version=gpt_config.get('api_version', '')
+        llm_config = self.config.get('agent', {})
+
+        raw_url = llm_config.get('url', 'http://localhost:8000/v1')
+        if not raw_url.endswith('/v1'):
+            raw_url = f"{raw_url.rstrip('/')}/v1"
+        
+        self.base_url = raw_url
+        self.api_key = llm_config.get('api_key', 'EMPTY')
+        self.model_name = llm_config.get('model_id', 'Qwen/Qwen3-8B-AWQ')
+
+        self.client = AsyncOpenAI(
+            base_url=self.base_url,
+            api_key=self.api_key,
+            timeout=120.0
         )
-        self.model_name = gpt_config.get('model_deployment_name', '')
+
+        self.sem = asyncio.Semaphore(20)
+
+        logger.info(f"[INFO] Graph Builder Initialized with {self.model_name}")
 
     def get_db_engine_for_db(self, db_id):
         mode = self.config['data']['mode']
@@ -363,9 +375,6 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
             db_root = self.config['data']['bird']['db_root_path']
             db_path = os.path.join(db_root, db_id, f"{db_id}.sqlite")
             return create_engine(f"sqlite:///{db_path}")
-
-        elif mode == "lg55":
-            return create_engine(self.config['data']['lg55']['db_uri'])
 
         return None
 
@@ -386,9 +395,10 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
 
 
         logger.info("Generating Semantic Description for Edges (This may take a while)...")
-        self._enrich_edges_with_llm(G)
+        asyncio.run(self._enrich_edges_with_llm(G))
 
-        
+        self._sanitize_graph_for_pickle(G)
+
         os.makedirs(os.path.dirname(self.cache_path), exist_ok=True)
         with open(self.cache_path, 'wb') as f:
             pickle.dump({'G': G, 'tables': tables}, f)
@@ -396,7 +406,19 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
 
         return G, tables
     
-    def _enrich_edges_with_llm(self, G):
+    def _sanitize_graph_for_pickle(self, G):
+        cleaned = 0
+        for u, v, data in G.edges(data=True):
+            for k, val in data.items():
+                if asyncio.iscoroutine(val) or asyncio.isfuture(val):
+                    logger.warning(f"[WARNING] Pickle Guard: Coroutine found in {u}-{v} key '{k}'. Converting to string.")
+                    G[u][v][k] = str(val)
+                    cleaned += 1
+        
+        if cleaned > 0:
+            logger.warning(f"[WARNING] Pickle Guard. Cleaned {cleaned} coroutine objects from graph.")
+
+    async def _enrich_edges_with_llm(self, G):
         """
         Graph의 모든 FK Edge를 순회하며 Semantic Desciption 추가
         """
@@ -406,21 +428,28 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
         # FK 관계인 Edge만 추출
         for u, v, data in G.edges(data=True):
             if data.get('relation') in ['foreign_key', 'table_foreign_key']:
-                edges_to_process.append((u, v, data))
+                if 'textual_label' not in data:
+                    edges_to_process.append((u, v, data))
         
         logger.info(f"Processing {len(edges_to_process)} edges for semantic labeling...")
         
-        for u, v, data in tqdm(edges_to_process):
-            if 'textual_label' in data:
-                continue
-                
+        tasks = [self._process_single_edge(G, u, v, data) for u, v, data in edges_to_process]
+
+        for f in tqdm(asyncio.as_completed(tasks), total=len(tasks)):
+            await f
+
+    
+    async def _process_single_edge(self, G, u, v, data):
+        async with self.sem:
             u_node = G.nodes[u]
             v_node = G.nodes[v]
-
             prompt = self._create_edge_prompt(u_node, v_node, data)
 
             try:
-                description = self._call_llm(prompt)
+                description = await self._call_llm(prompt)
+                if asyncio.iscoroutine(description):
+                    description = await description
+
                 G[u][v]['textual_label'] = description
             
             except Exception as e:
@@ -446,7 +475,7 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
             stop=stop_after_attempt(5),
             retry=retry_if_exception_type((RateLimitError, APIError, ConnectionError))
     )
-    def _call_llm(self, prompt):
+    async def _call_llm(self, prompt):
         messages = [
             {
                 "role": "user",
@@ -454,11 +483,11 @@ class SemanticGraphBuilder(ShortcutGraphBuilder):
             }
         ]
 
-        completion = self.client.chat.completions.create(
+        completion = await self.client.chat.completions.create(
             model=self.model_name,
             messages=messages,
             temperature=0.0,
-            timeout=10.0
+            max_tokens=50,
         )
 
         return completion.choices[0].message.content.strip()

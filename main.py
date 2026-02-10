@@ -16,7 +16,6 @@ from src.modules.generator import *
 from src.utils.graph_to_mschema import *
 from src.utils.logger import *
 from src.utils.data_loader import *
-from src.utils.domain_rules import *
 
 SERVER_URL = "http://localhost:8000"
 
@@ -96,19 +95,13 @@ def main():
     # 4. SQL Generator 초기화
     gen_config = config.get('generator', {})
     server_url = gen_config.get('url')
-    prompt_path = gen_config.get('prompt_path').format(mode=config['data']['mode'])
-    """
+    prompt_path = gen_config.get('prompt_path')
+    
     generator = XiYanGenerator(
         server_url=server_url,
         prompt_path=prompt_path
     )
-    """
-    generator = GPTGenerator(
-       config.get('gpt-config', {}),
-       prompt_path=prompt_path
-    )
     
-
     # 5. Evaluation
     evaluator = SchemaEvaluator()
 
@@ -147,10 +140,7 @@ def main():
             evaluation_logs.append(log_entry)
             continue
 
-        bird_evidence = item.get('evidence', '')
-        domain_evidence = get_domain_hints(question)
-        time_context = get_time_context(db_engine)
-        evidence = f"{bird_evidence}\n{domain_evidence}\n{time_context}"
+        evidence = item.get('evidence', '')
 
         try:
             # 파이프라인 실행

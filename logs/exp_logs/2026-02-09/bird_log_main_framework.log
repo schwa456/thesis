@@ -1,0 +1,471 @@
+2026-02-09 22:23:15 - INFO - [main.py:86] - [INFO] Initializing Pipeline...
+2026-02-09 22:23:15 - DEBUG - [agent.py:22] - Agent Initialized via Server: http://localhost:8000/generate
+2026-02-09 22:23:15 - INFO - [pipeline.py:29] - Agent Model ID: Qwen/Qwen3-8B-AWQ
+2026-02-09 22:23:15 - DEBUG - [embedder.py:10] - Loading Embedder: sentence-transformers/all-MiniLM-L6-v2 on cuda...
+2026-02-09 22:23:19 - INFO - [pipeline.py:35] - Embedder Model: sentence-transformers/all-MiniLM-L6-v2
+2026-02-09 22:23:19 - INFO - [graph_builder.py:365] - [INFO] Graph Builder Initialized with Qwen/Qwen3-8B-AWQ
+2026-02-09 22:23:19 - INFO - [pipeline.py:49] - Graph Builder Type: semantic
+2026-02-09 22:23:19 - INFO - [pipeline.py:67] - Node Selector Type: agent
+2026-02-09 22:23:19 - INFO - [pipeline.py:79] - Graph Traverser Type: shortest_path
+2026-02-09 22:23:19 - INFO - [pipeline.py:106] - Retriever Type: hybrid
+2026-02-09 22:23:19 - INFO - [main.py:88] - [INFO] Initializing Pipeline Completed.
+2026-02-09 22:23:19 - INFO - [main.py:91] - [INFO] Loading Dataset...
+2026-02-09 22:23:21 - ERROR - [data_loader.py:84] - SQL Parsing Failed: Required keyword: 'this' missing for <class 'sqlglot.expressions.Datetime'>. Line 1, Col: 26.
+  SELECT DISTINCT DATETIME([4m)[0m - T2.birthday age FROM Player_Attributes AS t1 INNER JOIN Player AS t2 ON t1.player_api_id = t2.pla
+2026-02-09 22:23:22 - INFO - [main.py:93] - [INFO] Loaded 1534 items from [bird] dataset.
+2026-02-09 22:23:22 - INFO - [generator.py:20] - Generator Client Initialized: http://localhost:8001/generate
+2026-02-09 22:23:22 - INFO - [main.py:108] - Start Processing...
+2026-02-09 22:23:22 - DEBUG - [main.py:120] - Question: What is the highest eligible free rate for K-12 students in the schools in Alameda County?
+2026-02-09 22:23:22 - INFO - [pipeline.py:118] - [Context Switch] Building Graph for DB: california_schools
+2026-02-09 22:23:22 - DEBUG - [graph_builder.py:384] - Loading Cached Semantic Graph from ./data/cache_graphs/california_schools.pkl...
+2026-02-09 22:23:22 - INFO - [pipeline.py:129] - Indexing Graph for Retriever (DB: california_schools)
+2026-02-09 22:23:22 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:23:22 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:23:22 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:23:22 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:23:22 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: What is the highest eligible free rate for K-12 students in the schools in Alameda County?
+2026-02-09 22:23:22 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:23:22 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:23:22 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:23:22 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:24:46 - ERROR - [node_selector.py:69] - [ERROR] JSON Parsing Failed: Expecting property name enclosed in double quotes: line 1 column 3 (char 2)
+2026-02-09 22:24:46 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:24:46 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:24:46 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:24:46 - DEBUG - [generator.py:43] - Evidence: 
+Eligible free rate for K-12 = `Free Meal Count (K-12)` / `Enrollment (K-12)`
+2026-02-09 22:24:46 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+What is the highest eligible free rate for K-12 students in the schools in Alameda County?
+
+### 【Reference Information】
+Eligible free rate for K-12 = `Free Meal Count (K-12)` / `Enrollment (K-12)`
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+What is the highest eligible free rate for K-12 students in the schools in Alameda County?
+
+```sql
+
+2026-02-09 22:24:46 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:25:49 - DEBUG - [main.py:167] - 
+2026-02-09 22:25:49 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:25:49 - DEBUG - [main.py:181] - [Low Recall] Missing: ['frpm.free meal count (k-12)', 'frpm.enrollment (k-12)', 'frpm.county name']
+2026-02-09 22:25:49 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:25:49 - DEBUG - [main.py:120] - Question: Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.
+2026-02-09 22:25:49 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.
+2026-02-09 22:25:49 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:25:49 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:25:49 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:25:49 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:26:16 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:26:16 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:26:16 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:26:16 - DEBUG - [generator.py:43] - Evidence: 
+Eligible free rates for students aged 5-17 = `Free Meal Count (Ages 5-17)` / `Enrollment (Ages 5-17)`
+2026-02-09 22:26:16 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.
+
+### 【Reference Information】
+Eligible free rates for students aged 5-17 = `Free Meal Count (Ages 5-17)` / `Enrollment (Ages 5-17)`
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+Please list the lowest three eligible free rates for students aged 5-17 in continuation schools.
+
+```sql
+
+2026-02-09 22:26:16 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:27:19 - DEBUG - [main.py:167] - 
+2026-02-09 22:27:19 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:27:19 - DEBUG - [main.py:181] - [Low Recall] Missing: ['frpm.educational option type', 'frpm.enrollment (ages 5-17)', 'frpm.free meal count (ages 5-17)']
+2026-02-09 22:27:19 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:27:19 - DEBUG - [main.py:120] - Question: Please list the zip code of all the charter schools in Fresno County Office of Education.
+2026-02-09 22:27:19 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: Please list the zip code of all the charter schools in Fresno County Office of Education.
+2026-02-09 22:27:19 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:27:19 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:27:19 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:27:19 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:27:51 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:27:51 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:27:51 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:27:51 - DEBUG - [generator.py:43] - Evidence: 
+Charter schools refers to `Charter School (Y/N)` = 1 in the table fprm
+2026-02-09 22:27:51 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+Please list the zip code of all the charter schools in Fresno County Office of Education.
+
+### 【Reference Information】
+Charter schools refers to `Charter School (Y/N)` = 1 in the table fprm
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+Please list the zip code of all the charter schools in Fresno County Office of Education.
+
+```sql
+
+2026-02-09 22:27:51 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:28:54 - DEBUG - [main.py:167] - 
+2026-02-09 22:28:54 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:28:54 - DEBUG - [main.py:181] - [Low Recall] Missing: ['frpm.district name', 'frpm.cdscode', 'schools.cdscode', 'schools.zip', 'frpm.charter school (y/n)']
+2026-02-09 22:28:54 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:28:54 - DEBUG - [main.py:120] - Question: What is the unabbreviated mailing street address of the school with the highest FRPM count for K-12 students?
+2026-02-09 22:28:54 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: What is the unabbreviated mailing street address of the school with the highest FRPM count for K-12 students?
+2026-02-09 22:28:54 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:28:54 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:28:54 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:28:54 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:29:33 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:29:33 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:29:33 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:29:33 - DEBUG - [generator.py:43] - Evidence: 
+
+2026-02-09 22:29:33 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+What is the unabbreviated mailing street address of the school with the highest FRPM count for K-12 students?
+
+### 【Reference Information】
+
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+What is the unabbreviated mailing street address of the school with the highest FRPM count for K-12 students?
+
+```sql
+
+2026-02-09 22:29:33 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:30:36 - DEBUG - [main.py:167] - 
+2026-02-09 22:30:36 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:30:36 - DEBUG - [main.py:181] - [Low Recall] Missing: ['frpm.cdscode', 'frpm.frpm count (k-12)', 'schools.mailstreet', 'schools.cdscode']
+2026-02-09 22:30:36 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:30:36 - DEBUG - [main.py:120] - Question: Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1.
+2026-02-09 22:30:36 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1.
+2026-02-09 22:30:36 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:30:36 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:30:36 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:30:36 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:31:03 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:31:03 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:31:03 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:31:03 - DEBUG - [generator.py:43] - Evidence: 
+Charter schools refers to `Charter School (Y/N)` = 1 in the frpm
+2026-02-09 22:31:03 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1.
+
+### 【Reference Information】
+Charter schools refers to `Charter School (Y/N)` = 1 in the frpm
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+Please list the phone numbers of the direct charter-funded schools that are opened after 2000/1/1.
+
+```sql
+
+2026-02-09 22:31:03 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:32:06 - DEBUG - [main.py:167] - 
+2026-02-09 22:32:06 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:32:06 - DEBUG - [main.py:181] - [Low Recall] Missing: ['schools.opendate', 'frpm.cdscode', 'schools.cdscode', 'frpm.charter funding type', 'frpm.charter school (y/n)', 'schools.phone']
+2026-02-09 22:32:06 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:32:06 - DEBUG - [main.py:120] - Question: How many schools with an average score in Math greater than 400 in the SAT test are exclusively virtual?
+2026-02-09 22:32:06 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: How many schools with an average score in Math greater than 400 in the SAT test are exclusively virtual?
+2026-02-09 22:32:06 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:32:06 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:32:06 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:32:06 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:33:01 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:33:01 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:33:01 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:33:01 - DEBUG - [generator.py:43] - Evidence: 
+Exclusively virtual refers to Virtual = 'F'
+2026-02-09 22:33:01 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+How many schools with an average score in Math greater than 400 in the SAT test are exclusively virtual?
+
+### 【Reference Information】
+Exclusively virtual refers to Virtual = 'F'
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+How many schools with an average score in Math greater than 400 in the SAT test are exclusively virtual?
+
+```sql
+
+2026-02-09 22:33:01 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:34:04 - DEBUG - [main.py:167] - 
+2026-02-09 22:34:04 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:34:04 - DEBUG - [main.py:181] - [Low Recall] Missing: ['satscores.cds', 'schools.school', 'schools.virtual', 'schools.cdscode', 'satscores.avgscrmath']
+2026-02-09 22:34:04 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:34:04 - DEBUG - [main.py:120] - Question: Among the schools with the SAT test takers of over 500, please list the schools that are magnet schools or offer a magnet program.
+2026-02-09 22:34:04 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: Among the schools with the SAT test takers of over 500, please list the schools that are magnet schools or offer a magnet program.
+2026-02-09 22:34:04 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:34:04 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:34:04 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:34:04 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:34:36 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:34:36 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:34:36 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:34:36 - DEBUG - [generator.py:43] - Evidence: 
+Magnet schools or offer a magnet program means that Magnet = 1
+2026-02-09 22:34:36 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+Among the schools with the SAT test takers of over 500, please list the schools that are magnet schools or offer a magnet program.
+
+### 【Reference Information】
+Magnet schools or offer a magnet program means that Magnet = 1
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+Among the schools with the SAT test takers of over 500, please list the schools that are magnet schools or offer a magnet program.
+
+```sql
+
+2026-02-09 22:34:36 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:35:39 - DEBUG - [main.py:167] - 
+2026-02-09 22:35:39 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:35:39 - DEBUG - [main.py:181] - [Low Recall] Missing: ['satscores.cds', 'schools.school', 'schools.cdscode', 'schools.magnet', 'satscores.numtsttakr']
+2026-02-09 22:35:39 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:35:39 - DEBUG - [main.py:120] - Question: What is the phone number of the school that has the highest number of test takers with an SAT score of over 1500?
+2026-02-09 22:35:39 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: What is the phone number of the school that has the highest number of test takers with an SAT score of over 1500?
+2026-02-09 22:35:39 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:35:39 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:35:39 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:35:39 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:36:19 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:36:19 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:36:19 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:36:19 - DEBUG - [generator.py:43] - Evidence: 
+
+2026-02-09 22:36:19 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+What is the phone number of the school that has the highest number of test takers with an SAT score of over 1500?
+
+### 【Reference Information】
+
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+What is the phone number of the school that has the highest number of test takers with an SAT score of over 1500?
+
+```sql
+
+2026-02-09 22:36:19 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:37:22 - DEBUG - [main.py:167] - 
+2026-02-09 22:37:22 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:37:22 - DEBUG - [main.py:181] - [Low Recall] Missing: ['satscores.cds', 'schools.phone', 'satscores.numge1500', 'schools.cdscode']
+2026-02-09 22:37:22 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:37:22 - DEBUG - [main.py:120] - Question: What is the number of SAT test takers of the schools with the highest FRPM count for K-12 students?
+2026-02-09 22:37:22 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: What is the number of SAT test takers of the schools with the highest FRPM count for K-12 students?
+2026-02-09 22:37:22 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:37:22 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:37:22 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:37:22 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:38:05 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:38:05 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:38:05 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:38:05 - DEBUG - [generator.py:43] - Evidence: 
+
+2026-02-09 22:38:05 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+What is the number of SAT test takers of the schools with the highest FRPM count for K-12 students?
+
+### 【Reference Information】
+
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+What is the number of SAT test takers of the schools with the highest FRPM count for K-12 students?
+
+```sql
+
+2026-02-09 22:38:05 - DEBUG - [generator.py:66] - Sending SQL Generation Request...
+2026-02-09 22:39:08 - DEBUG - [main.py:167] - 
+2026-02-09 22:39:08 - ERROR - [evaluation.py:294] - [ERROR] SQL Execution Failed: This result object does not return rows. It has been closed automatically. | Query: 
+2026-02-09 22:39:08 - DEBUG - [main.py:181] - [Low Recall] Missing: []
+2026-02-09 22:39:08 - DEBUG - [main.py:186] - [FAIL] Execution Mismatch. Err: Pred Error: This result object does not return rows. It has been closed automatically.
+2026-02-09 22:39:08 - DEBUG - [main.py:120] - Question: Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?
+2026-02-09 22:39:08 - INFO - [retriever.py:265] - [INFO] Retrieval Processing: Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?
+2026-02-09 22:39:08 - DEBUG - [retriever.py:130] - Indexing Graph for PCST with Semantic Edges ...
+2026-02-09 22:39:08 - DEBUG - [embedder.py:27] - Indexing 92 schema nodes...
+2026-02-09 22:39:08 - DEBUG - [embedder.py:38] - Schema indexing complete.
+2026-02-09 22:39:08 - DEBUG - [retriever.py:164] - Indexed 92 nodes for PCST.
+2026-02-09 22:40:02 - WARNING - [retriever.py:288] - [WARNING] Agent Found NO relevant tables. Stopping retrieval.
+2026-02-09 22:40:02 - DEBUG - [pipeline.py:148] - Seed Tables: 0 tables
+2026-02-09 22:40:02 - DEBUG - [pipeline.py:217] - Smart Expansion: 0 -> 0 nodes (Target Tables: 0)
+2026-02-09 22:40:02 - DEBUG - [generator.py:43] - Evidence: 
+
+2026-02-09 22:40:02 - DEBUG - [generator.py:56] - Prompt: 
+### 【Role】
+You are an expert in sqlite, and now you need to read and understand the following 【Database schema】 description, 
+as well as evidence (if exists)【Reference Information】 that may be useful, and use MariaDB knowledge to generate SQL statements to answer 【User Questions】.
+
+Note: The database can be complicated, so that you MUST follow the 【Rules】 for generating SQL query.
+
+### 【Database Schema】
+【DB_ID】 california_schools
+【Schema】
+
+### 【User Question】
+Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?
+
+### 【Reference Information】
+
+
+### 【Rules】
+- The column name can have more than one word. Thus you MUST use backticks(`) for column name expression.
+
+### 【Output Format】
+- Return the SQL query inside a markdown code block.
+- Do not include explanations.
+
+### 【User Question】
+Among the schools with the average score in Math over 560 in the SAT test, how many schools are directly charter-funded?
+
+```sql
+
+2026-02-09 22:40:02 - DEBUG - [generator.py:66] - Sending SQL Generation Request...

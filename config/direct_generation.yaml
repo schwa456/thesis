@@ -38,13 +38,13 @@ agent:
   usage: False
   formatting: False
   url: "http://localhost:8000"
-  model_id: "Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8"
+  model_id: "Qwen/Qwen3-8B-AWQ"
   system_prompt_path: "./prompts/{mode}/agent/system.md"
   user_prompt_path: "./prompts/{mode}/agent/user.md"
 
 generator:
   url: "http://localhost:8001"
-  model_id: "XGenerationLab/XiYanSQL-QwenCoder-32B-2504"
+  model_id: "XGenerationLab/XiYanSQL-QwenCoder-7B-2504"
   prompt_path: "./prompts/{mode}/sql_generation.md"
 
 # 5. Evaluation Log Enable

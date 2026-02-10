@@ -165,3 +165,33 @@ class FilteringAgent(BaseAgent):
         except Exception as e:
             logger.error(f"[ERROR] Parsing Failed: {e}")
             return []
+
+    def generate(self, prompt: str) -> str:
+        if "<|im_start|>" not in prompt:
+            full_prompt = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
+        else:
+            full_prompt = prompt
+        
+        payload = {
+            "prompt": full_prompt,
+            "max_tokens": 2048,
+            "temperature": 0.0
+        }
+
+        try:
+            response = requests.post(self.endpoint, json=payload, timeout=600)
+
+            if response.status_code == 200:
+                result_text = response.json().get('result', '')
+                if "<|im_start|>assistant" in result_text:
+                    result_text = result_text.split("<|im_start|>assistant")[-1]
+                
+                result_text = result_text.replace("<|im_end|>", "").strip()
+                return result_text
+            else:
+                logger.error(f"[ERROR] Generate Request Failed: {response.status_code} - {response.text}")
+                return ""
+        
+        except Exception as e:
+            logger.error(f"[ERROR] Agent Connection Failed during generate(): {e}")
+            return ""

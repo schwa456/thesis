@@ -40,26 +40,32 @@ class XiYanGenerator(BaseGenerator):
 
     def generate_query(self, question, schema_info, evidence=None):
 
-        logger.debug(f"Evidence: \n{evidence}")
+        evidence_str = ""
+        if evidence:
+            evidence_str = f"### 【Reference Information】\n{evidence}\n"
         
         try:
             prompt = self.prompt_template.format(
                 dialect='sqlite',
                 schema_info=schema_info,
                 question=question,
-                evidence=evidence
+                evidence=evidence_str
             )
         except KeyError as e:
             logger.error(f"[ERROR] Prompt Formatting Error: Missing Key: {e}")
             return ""
 
+        chat_prompt = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n```sql\n"
+
         logger.debug(f"Prompt: \n{prompt}")
 
         try:
             payload = {
-                "prompt": prompt,
+                "prompt": chat_prompt,
                 "max_tokens": 2048,
                 "temperature": 0.1,
+                "stop": ["```", "<|im_end|>", ";\n", "```sql"], 
+                "repetition_penalty": 1.1,
                 "echo": False
             }
 
@@ -68,6 +74,7 @@ class XiYanGenerator(BaseGenerator):
 
             if response.status_code == 200:
                 result_text = response.json().get('result', '')
+                logger.debug(f"[DEBUG] Renerator Raw Output: \n{result_text}")
 
                 return self._process_response(result_text)
             else:
@@ -84,8 +91,6 @@ class XiYanGenerator(BaseGenerator):
     
     def _process_response(self, response_text: str) -> str:
         query = self._extract_sql_query(response_text)
-
-        #query = query.replace("`", "")
         
         query = query.strip().rstrip(';')
         
@@ -94,12 +99,15 @@ class XiYanGenerator(BaseGenerator):
     def _extract_sql_query(self, text: str) -> str:
         if not text:
             return ""
-        
-        # 1. 마크다운 블록 추출
+            
+        # 1. 마크다운 블록 추출 (```sql ... ```)
         code_block_pattern = r"```(?:sql)?\s*(.*?)```"
         match = re.search(code_block_pattern, text, re.DOTALL | re.IGNORECASE)
         if match:
-            return match.group(1).strip()
+            sql = match.group(1).strip()
+            if ";" in sql:
+                sql = sql.split(";")[0] + ";"
+            return sql
         
         # 2. SELECT 문 추출 (SELECT ... ;)
         select_pattern = r"(SELECT\s[\s\S]+?;)"
@@ -107,80 +115,13 @@ class XiYanGenerator(BaseGenerator):
         if match:
             return match.group(1).strip()
         
-        # 3. SELECT 문 추출 (SELECT ...)
-        select_start_pattern = r"(SELECT\s[\s\S]*)"
-        match = re.search(select_start_pattern, text, re.DOTALL | re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
+        # 3. SELECT 문 추출 (SELECT ...) - 세미콜론 없을 때
+        # 이미 ```sql 로 유도했으므로, 텍스트 전체가 SQL일 가능성이 높음
+        if "SELECT" in text.upper():
+            # 첫 번째 세미콜론까지만 자름
+            if ";" in text:
+                return text.split(";")[0].strip() + ";"
+            return text.strip()
         
-        # 헤더 삭제
-        lines = [line for line in text.split('\n') if not line.strip().startswith('#')]
-        clean_text = "\n".join(lines).strip()
-
-        return clean_text
-
-
-class GPTGenerator(BaseGenerator):
-    def __init__(self, model_config, prompt_path):
-        self.model_config = model_config
-        self.prompt_template = self._load_prompt(prompt_path)
-        self.client = AzureOpenAI(
-            azure_endpoint=self.model_config['end_point'],
-            api_key=self.model_config['api_key'],
-            api_version=self.model_config['api_version']
-        )
-    
-    def _load_prompt(self, path):
-        """ 프롬프트 파일을 읽어오는 헬퍼 함수"""
-        if not path or not os.path.exists(path):
-            logger.warning(f"[WARNING] Prompt File Not Found at {path}. Using default.")
-            return """
-            [Default Prompt]
-            Schema: {schema_info}
-            Question: {question}
-            Evidence: {evidence}
-            Generate SQL:
-            """
-        
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"[ERROR] Failed to load prompt: {e}")
-            raise e
-
-    def generate_query(self, question, schema_info, evidence=""):
-
-        try:
-            system_prompt = self.prompt_template.format(
-                dialect="SQLite",
-                schema_info=schema_info,
-                question=question,
-                evidence=evidence
-            )
-        except KeyError as e:
-            logger.error(f"[ERROR] Prompt Formatting Error: Missing Key: {e}")
-            return ""
-
-        messages = [
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": question
-            }
-        ]
-
-        try:
-            completions = self.client.chat.completions.create(
-                model=self.model_config['model_deployment_name'],
-                messages=messages,
-                temperature=0.1
-            )
-
-            return completions.choices[0].message.content.strip()
-
-        except Exception as e:
-            return f"API Error: {str(e)}"
+        # 최후의 수단: 그냥 원본 반환
+        return text.strip()
