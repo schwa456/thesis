@@ -4,6 +4,7 @@ from src.modules.node_selector import *
 from src.modules.retriever import *
 from src.modules.agent import *
 from src.modules.traverser import *
+from src.modules.reranker import *
 from src.utils.graph_to_mschema import *
 
 import logging
@@ -100,6 +101,15 @@ class Pipeline:
                 cost_e = config.get('pcst_cost', 0.5),
                 agent_weight=config.get('agent_weight', 10.0)
             )
+        elif retriever_type == 'reranker':
+            self.retriever = RerankedPCSTRetriever(embedder=self.embedder, reranker=SchemaReranker())
+        elif retriever_type == 'reranker_agent':
+            self.retriever = FastHybridRetriever(
+                embedder=self.embedder, 
+                reranker=SchemaReranker(), 
+                node_selector=self.node_selector,
+                agent_weight=config.get('agent_weight', 10.0)
+                )
         elif retriever_type == 'none':
             self.retriever = None
 
@@ -134,61 +144,74 @@ class Pipeline:
     
     def _boost_recall_neighbor_graph(self, G, current_nodes, max_neighbors=5):
         """
-        [Revised Strategy] Full Column Retention
-        Agent가 선택한 테이블이라면, 룰베이스로 필터링하지 않고 '모든 컬럼'을 Generator에게 전달합니다.
+        [Revised Strategy] Structural Integrity Focus
+        무분별한 이웃 테이블 확장과 전체 컬럼 추가를 중단합니다.
+        PCST 또는 Agent가 선택한 필수 노드들의 부모 테이블과, 
+        조인(JOIN)에 필수적인 Primary Key 정도만 복원하여 스키마 크기를 최소화합니다.
         """
-        # 1. Seed Table 식별
-        seed_tables = set()
+        final_set = set(current_nodes)
 
+        # 1. Parent Table 누락 방지
         for node in current_nodes:
             if node not in G: continue
-            if G.nodes[node].get('type') == 'table':
-                seed_tables.add(node)
-            elif G.nodes[node].get('type') == 'column':
-                parent = G.nodes[node].get('table')
-                if parent: seed_tables.add(parent)
-        
-        # 2. 이웃 테이블 탐색 (Safe Neighbors via FK)
-        #    - Seed 테이블과 FK로 직접 연결된 테이블만 제한적으로 가져옵니다.
-        neighbor_candidates = set()
-        for table in list(seed_tables):
-            if table not in G: continue
-            for col in G.neighbors(table): 
-                for connected_col in G.neighbors(col):
-                    edge_data = G.get_edge_data(col, connected_col)
-                    if edge_data and edge_data.get('relation') == 'foreign_key':
-                        target_table = G.nodes[connected_col].get('table')
-                        if target_table and target_table not in seed_tables:
-                            neighbor_candidates.add(target_table)
-
-        # 이웃 개수 제한 (Hub Node 방지)
-        final_neighbors = list(neighbor_candidates)
-        if len(final_neighbors) > max_neighbors:
-            final_neighbors = sorted(final_neighbors, key=lambda x: len(x))[:max_neighbors]
-        
-        # 최종 대상 테이블 확정
-        all_target_tables = seed_tables.union(set(final_neighbors))
-        
-        # 3. Full Column Expansion (No more hard-coding)
-        final_set = set(current_nodes) 
-
-        for table in all_target_tables:
-            if table not in G: continue
+            if G.nodes[node].get('type') == 'column':
+                parent_table = G.nodes[node].get('table')
+                if parent_table:
+                    final_set.add(parent_table)
             
-            # 테이블 노드 추가
-            final_set.add(table)
+        current_tables = {n for n in final_set if G.nodes[n].get('type') == 'table'}
 
-            # [핵심 변경] 해당 테이블의 '모든' 컬럼을 추가
-            # LLM이 직접 보고 판단하도록 정보 손실을 막음
+        for table in current_tables:
             for col_node in G.neighbors(table):
-                # 엣지 타입이 'contains'인 것만 컬럼임 (혹시 모를 다른 연결 배제)
-                edge_data = G.get_edge_data(table, col_node)
-                
-                # 보통 G.neighbors는 방향성 없이 가져올 수 있으므로 타입 체크
                 if G.nodes[col_node].get('type') == 'column':
-                    final_set.add(col_node)
+                    is_pk = G.nodes[col_node].get('is_pk', False)
 
-        logger.debug(f"[Context Expansion] Selected {len(all_target_tables)} tables. Retaining ALL columns ({len(final_set)} nodes) for Generator.")
+                    is_fk_to_selected = False
+                    for neighbor_col in G.neighbors(col_node):
+                        edge_data = G.get_edge_data(col_node, neighbor_col)
+                        if edge_data and edge_data.get('relation') == 'foreign_key':
+                            target_table = G.nodes[neighbor_col].get('table')
+                            if target_table in current_tables:
+                                is_fk_to_selected = True
+                                final_set.add(neighbor_col)
+
+                    if is_pk and is_fk_to_selected:
+                        final_set.add(col_node)
+        
+        logger.debug(f"[DEBUG] Expansion: Refined from {len(current_nodes)} to {len(final_set)} nodes.")
+        return final_set
+
+    def _ensure_structural_integrity(self, G, pcst_nodes):
+        """
+        PCST가 선택한 Node 들의 논리적 구조(부모 Table, 필수 연결 키)만 복원
+        불필요한 이웃 테이블이나 모든 컬럼 추가 X
+        """
+        final_set = set(pcst_nodes)
+
+        # 1. Parent Table 복원
+        for node in list(final_set):
+            if node not in G: continue
+            if G.nodes[node].get('type') == 'column':
+                parent = G.nodes[node].get('table')
+                if parent: final_set.add(parent)
+
+        # 2. FK, PK 복원
+        current_tables = {n for n in final_set if n in G and G.nodes[n].get('type') == 'table'}
+        
+        for table in current_tables:
+            for col_node in G.neighbors(table):
+                if G.nodes[col_node].get('type') != 'column': continue
+                
+                # 이미 선택된 테이블 간의 FK 관계인 컬럼이면 무조건 추가 (JOIN을 위해)
+                for neighbor_col in G.neighbors(col_node):
+                    edge_data = G.get_edge_data(col_node, neighbor_col)
+                    if edge_data and edge_data.get('relation') == 'foreign_key':
+                        target_table = G.nodes[neighbor_col].get('table')
+                        if target_table in current_tables:
+                            final_set.add(col_node)
+                            final_set.add(neighbor_col)
+                            
+        logger.debug(f"[Integrity Check] PCST Output {len(pcst_nodes)} -> Final {len(final_set)}")
         return final_set
 
     def _filter_by_agent(self, G, question, retrieved_nodes_list, evidence):
@@ -304,22 +327,26 @@ class Pipeline:
         if isinstance(self.retriever, HybridPCSTRetriever):
             if status_callback: status_callback("Hybrid Retrieval")
 
+            # 1. Agent가 불확실성을 통해 Prize를 주고, PCST가 최적의 Subgraph 도출 (핵심 로직 완결)
             retrieved_nodes_list = self.retriever.retrieve(G, question)
 
-            expanded_nodes = self._boost_recall_neighbor_graph(G, retrieved_nodes_list)
+            # 2. [핵심 수정] 기존의 맹목적 확장(_boost_recall...)을 버리고, 
+            # PCST 결과를 존중하는 '구조적 무결성(Structural Integrity)' 보정만 수행
+            expanded_nodes = self._ensure_structural_integrity(G, retrieved_nodes_list)
 
+            # 3. M-Schema 문자열 생성
             schema_string = nodes_to_mschema(expanded_nodes, G, db_engine, db_id, bird_meta)
+            
             return {
                 "question": question,
-                "retrieved_nodes": retrieved_nodes_list,    # 1차 검색 결과
-                "selected_items": expanded_nodes,              # Agent가 Filtering 한 것
-                "final_schema_str": schema_string           # 최종 SQL 생성용 String
+                "retrieved_nodes": retrieved_nodes_list,    
+                "selected_items": expanded_nodes,              
+                "final_schema_str": schema_string           
             }
 
         else:
             # Path B: Retrieval -> Agent Filtering
-
-            # 2. Schema Retrieval
+            # 1. Schema Retrieval
             if status_callback: status_callback("Retrieving")
             if self.retriever:
                 retrieved_nodes_list = self.retriever.retrieve(G, question)
@@ -328,13 +355,13 @@ class Pipeline:
 
             logger.debug(f"Retrieved Nodes ({len(retrieved_nodes_list)}): {retrieved_nodes_list}")
         
-            # 3. Agent Filtering
+            # 2. Agent Filtering
             if status_callback: status_callback("Agent Filtering")
             if self.agent:
                 final_items = self._filter_by_agent(G, question, retrieved_nodes_list, evidence)
             else: pass
 
-            # 4. Result Formatting
+            # 3. Result Formatting
             # Agent가 선택한 아이템을 다시 Graph로 확장
             if status_callback: status_callback("Formatting")
             if self.agent and self.config['agent']['formatting']:

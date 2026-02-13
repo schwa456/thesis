@@ -62,6 +62,13 @@ class AgentNodeSelector(BaseNodeSelector):
         
         prompt = self._construct_prompt(question, candidates)
 
+        prompt += """
+        \n[CONSTRAINT]
+        1. Output ONLY the JSON object. Do not include any explanation text outside the JSON.
+        2. Keep the "reasoning" field extremely short (max 10 words).
+        3. Do NOT explain step-by-step. Just select the tables/columns.
+        """
+
         logger.debug(f"[AgentSelector] Prompt Preview: {prompt[:500]}...")
 
         response = self.agent.generate(prompt)
@@ -79,7 +86,7 @@ class AgentNodeSelector(BaseNodeSelector):
             logger.info("[AgentSelector] Agent decided the question is UNANSWERABLE (is_answerable=False).")
             return {}
         
-        weighted_seeds = parsed_result.get('selected_tables', {})
+        weighted_seeds = parsed_result.get('selected_items', parsed_result.get('selected_tables', {}))
 
         final_seeds = {}
         for k, v in weighted_seeds.items():
@@ -96,22 +103,26 @@ class AgentNodeSelector(BaseNodeSelector):
     
     def _construct_prompt(self, question, candidates):
         return f"""
-        You are a database expert focusing on selecting relevant tables for a SQL query.
-        Given the user's question and the list of available tables, select the tables that are **strictly necessary** to answer the question.
+        You are a database expert focusing on selecting relevant tables AND columns for a SQL query.
+        Given the user's question and the list of available schema elements, select the elements that are **strictly necessary** to answer the question.
+
+        * Note: Column names are provided in the format 'table_name.column_name'.
 
         Current Task:
         1. Analyze the question: "{question}"
-        2. Review available tables: {candidates}
-        3. Select relevant tables and assign a **confidence score (0.0 to 1.0)** for each based on how sure you are.
-        4. If the question cannot be answered with the given tables, set "is_answerable" to false.
+        2. Review available tables and columns: {candidates}
+        3. Select relevant tables AND their specific columns. 
+        4. Assign a **confidence score (0.0 to 1.0)** for each selected item.
+        
+        * STRICT CONSTRAINT ON REASONING: Keep your reasoning VERY concise (maximum 3 sentences). Do not overthink.
 
         Output Format (JSON Only):
         {{
             "is_answerable": true,
-            "reasoning": "Brief explanation here...",
-            "selected_tables": {{
+            "reasoning": "Brief explanation here (max 3 sentences)...",
+            "selected_items": {{
                 "table_name_A": 0.95,
-                "table_name_B": 0.7
+                "table_name_A.column_name_1": 0.90
             }}
         }}
         """

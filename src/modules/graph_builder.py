@@ -94,7 +94,7 @@ class SimpleFKGraphBuilder(BaseGraphBuilder):
                     )
 
                     # 1-3. Edge: Table -> Column (contains)
-                    G.add_edge(table_name, col_node_id, relation='containts')
+                    G.add_edge(table_name, col_node_id, relation='contains')
 
             except Exception as e:
                 logger.error(f"[ERROR] Processing columns for table {table_name}: {e}")

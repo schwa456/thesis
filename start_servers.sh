@@ -39,11 +39,11 @@ wait_for_server() {
 echo "[INFO] Starting Servers..."
 
 # 2. Agent Server (GPU 0번, agent_server.log)
-echo "[INFO] Starting Agent Server on GPU 0..."
-CUDA_VISIBLE_DEVICES=1 python server.py --role agent --port 8000 > logs/server_logs/agent_server.log 2>&1 &
-AGENT_PID=$!
+#echo "[INFO] Starting Agent Server on GPU 0..."
+#CUDA_VISIBLE_DEVICES=1 python server.py --role agent --port 8000 > logs/server_logs/agent_server.log 2>&1 &
+#AGENT_PID=$!
 
-wait_for_server 8000 "Agent"
+#wait_for_server 8000 "Agent"
 
 # 3. Generator Server (GPU 1번, generator_server.log)
 echo "[INFO] Starting Generator Server on GPU 1..."
@@ -53,7 +53,7 @@ GEN_PID=$!
 wait_for_server 8001 "Generator"
 
 echo "[INFO] All Systems READY"
-echo "      - Agent PID: $AGENT_PID"
+#echo "      - Agent PID: $AGENT_PID"
 echo "      - Generator PID: $GEN_PID"
 echo "[INFO] Logs are being saved to 'logs/server_logs/' directory"
 echo "[INFO] Press Ctrl+C to stop both servers"

@@ -23,13 +23,13 @@ max_k: 5        # Maximum seeds for adaptive
 # 3. Traversal
 # Options: 'shortest_path', 'neighbor'
 traverser_type: 'shortest_path'
-max_hops: 5     # For shortest_path
+max_hops: 3     # For shortest_path
 hops: 1         # For neighbor
 
 # 4. Retriever
-# Options: 'graph_schema', 'pcst', 'hybrid'
-retriever_type: 'hybrid'
-pcst_cost: 0.5      # For hybrid
+# Options: 'graph_schema', 'pcst', 'hybrid', 'reranker', 'reranker_agent'
+retriever_type: 'reranker_agent'
+pcst_cost: 0.2      # For hybrid
 agent_weight: 10.0  # For hybrid
 
 # 4. Agent & LLM

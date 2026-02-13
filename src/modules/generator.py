@@ -42,7 +42,7 @@ class XiYanGenerator(BaseGenerator):
 
         evidence_str = ""
         if evidence:
-            evidence_str = f"### 【Reference Information】\n{evidence}\n"
+            evidence_str = f"{evidence}"
         
         try:
             prompt = self.prompt_template.format(
@@ -74,7 +74,7 @@ class XiYanGenerator(BaseGenerator):
 
             if response.status_code == 200:
                 result_text = response.json().get('result', '')
-                logger.debug(f"[DEBUG] Renerator Raw Output: \n{result_text}")
+                logger.debug(f"[DEBUG] Generator Raw Output: \n{result_text}")
 
                 return self._process_response(result_text)
             else:

@@ -106,7 +106,7 @@ class FilteringAgent(BaseAgent):
         try:
             payload = {
                 "prompt": full_prompt,
-                "max_tokens": 2048,
+                "max_tokens": 200,
                 "temperature": 0.1
             }
 

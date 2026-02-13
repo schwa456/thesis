@@ -14,8 +14,6 @@ class DataLoader:
     def load_data(self):
         if self.mode == 'bird':
             return self._load_bird()
-        elif self.mode == 'lg55':
-            return self._load_lg55()
         else:
             raise ValueError(f"Unknown data mode: {self.mode}")
     
@@ -53,28 +51,6 @@ class DataLoader:
                 "meta_schema": tables_metadata.get(db_id, {}) 
             })
         
-        return processed_data
-    
-    def _load_lg55(self):
-        json_path = self.config['data']['lg55']['question_path']
-        logger.info(f"Loading LG55 data from {json_path}")
-
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        processed_data = []
-
-        for i, item in enumerate(data):
-            processed_data.append({
-                "question_id": item.get("idx", i),
-                "question": item["question"],
-                "gt_schema": item.get("gold_schema"),
-                "db_id": "lg55_db",
-                "evidence": "",
-                "sql": item.get("gold_sql"),
-            })
-        
-        logger.info(f"Loaded {len(processed_data)} questions from LG55.")
         return processed_data
     
     def _convert_sql_to_schema(self, query):
